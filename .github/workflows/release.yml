@@ -21,7 +21,7 @@ jobs:
       - name: Verify
         run: mvn --batch-mode verify
       - name: Update version in pom.xml (Release only)
-        run: mvn --batch-mode clean versions:set -DnewVersion=${{ github.event.release.tag_name }} -DgenerateBackupPoms=false verify
+        run: mvn --batch-mode clean versions:set -DnewVersion=${{ github.event.release.name }} -DgenerateBackupPoms=false verify
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
           MAVEN_GPG_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
