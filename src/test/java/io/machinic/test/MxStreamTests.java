@@ -218,7 +218,6 @@ public class MxStreamTests {
 				MxStream.of(array)
 						.skip(2)
 						.fanOut(4)
-						//						.sorted(10, Comparator.naturalOrder())
 						.map(Object::toString)
 						.toSet());
 	}

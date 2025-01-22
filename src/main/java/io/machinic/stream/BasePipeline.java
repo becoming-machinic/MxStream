@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-
 package io.machinic.stream;
 
 import io.machinic.stream.sink.AbstractSink;
+import io.machinic.stream.sink.CollectorSink;
 import io.machinic.stream.sink.ForEachSink;
 import io.machinic.stream.source.PipelineSource;
 import io.machinic.stream.spliterator.AbstractSpliterator;
@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -215,37 +214,9 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	@Override
 	public <R, A> R collect(Collector<? super OUT, A, R> collector) {
-		// TODO migrate to sink
-		A container = collector.supplier().get();
-		if (isParallel()) {
-			// create and start other threads
-			int parallelism = this.getParallelism();
-			ExecutorService executorService = this.getExecutorService();
-			List<Future<?>> futures = new ArrayList<>();
-			for (int i = 0; i < parallelism; i++) {
-				Spliterator<OUT> split = this.getSpliterator().trySplit();
-				if (split != null) {
-					futures.add(executorService.submit(() -> {
-						split.forEachRemaining(value -> collector.accumulator().accept(container, value));
-					}));
-				}
-			}
-			
-			// process remaining items
-			this.getSpliterator().forEachRemaining(value -> collector.accumulator().accept(container, value));
-			
-			// Close down other threads
-			for (Future<?> future : futures) {
-				try {
-					future.get();
-				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		} else {
-			this.forEach(value -> collector.accumulator().accept(container, value));
-		}
-		return collector.finisher().apply(container);
+		MxCollector<? super OUT, A, R> mxCollector = new MxCollector<>(collector);
+		this.processSink(new CollectorSink<>(this, getSpliterator(), mxCollector));
+		return mxCollector.finish();
 	}
 	
 	@Override
@@ -267,14 +238,18 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 		if (isParallel()) {
 			int parallelism = this.getParallelism();
 			ExecutorService executorService = this.getExecutorService();
-			List<Future<?>> futures = new ArrayList<>();
+			
+			List<Runnable> tasks = new ArrayList<>();
 			for (int i = 0; i < parallelism; i++) {
-				Spliterator<OUT> split = this.getSpliterator().trySplit();
+				AbstractSink<OUT> split = sink.trySplit();
 				if (split != null) {
-					futures.add(executorService.submit(sink::forEachRemaining));
+					tasks.add(split::forEachRemaining);
 				}
 			}
+			
+			List<? extends Future<?>> futures = tasks.stream().map(executorService::submit).toList();
 			sink.forEachRemaining();
+			
 			for (Future<?> future : futures) {
 				try {
 					future.get();
