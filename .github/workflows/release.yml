@@ -20,11 +20,8 @@ jobs:
           gpg-private-key: MAVEN_GPG_KEY
       - name: Verify
         run: mvn --batch-mode verify
-        env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
-          MAVEN_GPG_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
       - name: Update version in pom.xml (Release only)
-        run: mvn --batch-mode versions:set -DnewVersion=${{ github.event.release.tag_name }} -DgenerateBackupPoms=false
+        run: mvn --batch-mode clean versions:set -DnewVersion=${{ github.event.release.tag_name }} -DgenerateBackupPoms=false verify
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
           MAVEN_GPG_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
@@ -33,5 +30,3 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
-          MAVEN_GPG_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}

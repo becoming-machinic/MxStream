@@ -19,10 +19,5 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
-          gpg-private-key: MAVEN_GPG_KEY
       - name: Verify
-        run: mvn --batch-mode verify
-        env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
-          MAVEN_GPG_KEY: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
+        run: mvn --batch-mode test
