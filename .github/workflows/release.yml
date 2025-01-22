@@ -20,7 +20,7 @@ jobs:
       - name: Set Version
         run: mvn --batch-mode versions:set -DnewVersion=${{ github.event.release.name }} -Dgpg.passphrase=${{ secrets.RELEASES_GPG_PASSPHRASE }} -DgenerateBackupPoms=false
       - name: Package
-        run: mvn clean verify
+        run: mvn --batch-mode --no-transfer-progress clean verify
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
       - name: Publish
