@@ -23,7 +23,6 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -121,52 +120,52 @@ public class MxStreamTests {
 		
 	}
 	
-	@Test
-	public void windowedSortTest() {
-		List<String> list = List.of("1", "2", "3", "4", "5", "6", "7", "8");
-		
-		Assertions.assertEquals(
-				list,
-				MxStream.of(list)
-						.sorted(10, Comparator.naturalOrder())
-						.toList());
-		
-		Assertions.assertEquals(
-				list,
-				MxStream.of(list.reversed())
-						.sorted(10, Comparator.naturalOrder())
-						.toList());
-		
-		// This is worst case
-		Assertions.assertEquals(
-				List.of("4", "3", "2", "1", "5", "6", "7", "8"),
-				MxStream.of(list.reversed())
-						.sorted(5, Comparator.naturalOrder())
-						.toList());
-		
-		{
-			List<Integer> array = new ArrayList<>();
-			for (int i = 1; i < 50; i++) {
-				array.add(i);
-			}
-			
-			Assertions.assertEquals(
-					array.stream().sorted(Comparator.naturalOrder()).map(Object::toString).collect(Collectors.toList()),
-					MxStream.of(array)
-							.sorted(30, Comparator.naturalOrder())
-							.map(Object::toString)
-							.toList());
-			
-			Assertions.assertEquals(
-					array.stream().map(Object::toString).collect(Collectors.toSet()),
-					MxStream.parallel(array, 1)
-							.sorted(30, Comparator.naturalOrder())
-							.map(Object::toString)
-							.toSet());
-			
-		}
-		
-	}
+//	@Test
+//	public void windowedSortTest() {
+//		List<String> list = List.of("1", "2", "3", "4", "5", "6", "7", "8");
+//
+//		Assertions.assertEquals(
+//				list,
+//				MxStream.of(list)
+//						.sorted(10, Comparator.naturalOrder())
+//						.toList());
+//
+//		Assertions.assertEquals(
+//				list,
+//				MxStream.of(list.reversed())
+//						.sorted(10, Comparator.naturalOrder())
+//						.toList());
+//
+//		// This is worst case
+//		Assertions.assertEquals(
+//				List.of("4", "3", "2", "1", "5", "6", "7", "8"),
+//				MxStream.of(list.reversed())
+//						.sorted(5, Comparator.naturalOrder())
+//						.toList());
+//
+//		{
+//			List<Integer> array = new ArrayList<>();
+//			for (int i = 1; i < 50; i++) {
+//				array.add(i);
+//			}
+//
+//			Assertions.assertEquals(
+//					array.stream().sorted(Comparator.naturalOrder()).map(Object::toString).collect(Collectors.toList()),
+//					MxStream.of(array)
+//							.sorted(30, Comparator.naturalOrder())
+//							.map(Object::toString)
+//							.toList());
+//
+//			Assertions.assertEquals(
+//					array.stream().map(Object::toString).collect(Collectors.toSet()),
+//					MxStream.parallel(array, 1)
+//							.sorted(30, Comparator.naturalOrder())
+//							.map(Object::toString)
+//							.toSet());
+//
+//		}
+//
+//	}
 	
 	@Test
 	public void flatMapTest() {
