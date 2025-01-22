@@ -17,13 +17,10 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-          gpg-private-key: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }}
       - name: Verify
         run: mvn --batch-mode verify
       - name: Update version in pom.xml (Release only)
-        run: mvn --batch-mode clean versions:set -DnewVersion=${{ github.event.release.name }} -DgenerateBackupPoms=false verify
-        env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
+        run: mvn --batch-mode clean versions:set -DnewVersion=${{ github.event.release.name }} -Dgpg.passphrase=${{ secrets.RELEASES_GPG_PASSPHRASE }} -DgenerateBackupPoms=false verify
       - name: Publish package
         run: mvn --batch-mode deploy
         env:
