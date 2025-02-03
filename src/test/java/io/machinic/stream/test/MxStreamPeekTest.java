@@ -19,9 +19,13 @@ package io.machinic.stream.test;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -31,8 +35,15 @@ import static io.machinic.stream.test.TestData.INTEGER_SET_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_B;
 import static io.machinic.stream.test.TestData.NOOP_EXCEPTION_HANDLER;
 
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamPeekTest {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamPeekTest.class);
+	
+	@BeforeEach
+	void setUp(TestInfo testInfo) {
+		LOG.info("test started: {}", testInfo.getDisplayName());
+	}
 	
 	@Test
 	public void peekTest() throws Exception {

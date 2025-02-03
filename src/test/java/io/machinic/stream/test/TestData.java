@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TestData {
+	
 	public static final List<Integer> INTEGER_LIST_A = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 	public static final Set<Integer> INTEGER_SET_A = new HashSet<>(INTEGER_LIST_A);
 	public static final List<String> STRING_LIST_A = INTEGER_LIST_A.stream().map(String::valueOf).collect(Collectors.toList());
@@ -47,7 +48,6 @@ public class TestData {
 		@Override
 		public void onException(Exception e, Object value) throws StreamException {
 			// NOOP on exception
-			System.out.println("Custom MxStreamExceptionHandler ignoring exception: " + e);
 		}
 	};
 }

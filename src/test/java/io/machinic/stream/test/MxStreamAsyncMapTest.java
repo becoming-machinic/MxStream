@@ -19,9 +19,13 @@ package io.machinic.stream.test;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Function;
 
@@ -31,8 +35,14 @@ import static io.machinic.stream.test.TestData.STRING_LIST_A;
 import static io.machinic.stream.test.TestData.STRING_SET_A;
 import static io.machinic.stream.test.TestData.STRING_SET_B;
 
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamAsyncMapTest {
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamAsyncMapTest.class);
+	
+	@BeforeEach
+	void setUp(TestInfo testInfo) {
+		LOG.info("test started: {}", testInfo.getDisplayName());
+	}
 	
 	@Test
 	public void asyncMapTest() {

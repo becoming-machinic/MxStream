@@ -18,9 +18,13 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -30,8 +34,14 @@ import static io.machinic.stream.test.TestData.INTEGER_LIST_E;
 import static io.machinic.stream.test.TestData.INTEGER_SET_D;
 import static io.machinic.stream.test.TestData.INTEGER_SET_E;
 
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamBatchTest {
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamBatchTest.class);
+	
+	@BeforeEach
+	void setUp(TestInfo testInfo) {
+		LOG.info("test started: {}", testInfo.getDisplayName());
+	}
 	
 	@Test
 	public void batchTest() {
@@ -61,7 +71,7 @@ public class MxStreamBatchTest {
 	public void batchWithOutTimeoutTest() {
 		Assertions.assertEquals(INTEGER_LIST_D,
 				MxStream.of(INTEGER_LIST_A)
-						.batch(5, 1000, TimeUnit.SECONDS)
+						.batch(5, 5, TimeUnit.SECONDS)
 						.toList());
 	}
 	
@@ -77,7 +87,7 @@ public class MxStreamBatchTest {
 	public void batchParallelWithOutTimeoutTest() {
 		Assertions.assertEquals(INTEGER_SET_D,
 				MxStream.parallel(INTEGER_LIST_A, 1)
-						.batch(5, 1000, TimeUnit.SECONDS)
+						.batch(5, 5, TimeUnit.SECONDS)
 						.toSet());
 	}
 	

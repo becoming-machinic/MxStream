@@ -18,15 +18,26 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
 
-@Execution(ExecutionMode.CONCURRENT)
+@Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamSourceTest {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamSourceTest.class);
+	
+	@BeforeEach
+	void setUp(TestInfo testInfo) {
+		LOG.info("test started: {}", testInfo.getDisplayName());
+	}
 	
 	@Test
 	public void sourceListTest() throws Exception {
