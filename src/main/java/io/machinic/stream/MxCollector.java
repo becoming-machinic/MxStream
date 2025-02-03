@@ -48,6 +48,6 @@ public class MxCollector<T, A, R> implements Supplier<A> {
 			return collector.finisher().apply(containers.stream().reduce((left, right) -> collector.combiner().apply(left, right))
 					.get());
 		}
-		return collector.finisher().apply(containers.getFirst());
+		return collector.finisher().apply(containers.get(0));
 	}
 }

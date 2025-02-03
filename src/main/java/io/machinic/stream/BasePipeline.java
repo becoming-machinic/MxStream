@@ -23,6 +23,7 @@ import io.machinic.stream.source.PipelineSource;
 import io.machinic.stream.spliterator.AbstractSpliterator;
 import io.machinic.stream.spliterator.AsyncMapSpliterator;
 import io.machinic.stream.spliterator.BatchSpliterator;
+import io.machinic.stream.spliterator.BatchTimeoutSpliterator;
 import io.machinic.stream.spliterator.FanOutSpliterator;
 import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
@@ -30,15 +31,18 @@ import io.machinic.stream.spliterator.MapSpliterator;
 import io.machinic.stream.spliterator.PassThoughSpliterator;
 import io.machinic.stream.spliterator.PeekSpliterator;
 import io.machinic.stream.spliterator.WindowedSortSpliterator;
+import io.machinic.stream.util.Require;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -71,22 +75,23 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	@Override
 	public MxStream<OUT> parallelStream(int parallelism) {
+		Require.equalOrGreater(parallelism, 1, "parallelism");
 		return parallelStream(parallelism, this.getExecutorService());
 	}
 	
 	@Override
 	public MxStream<OUT> parallelStream(int parallelism, ExecutorService executorService) {
 		if (!this.isParallel()) {
-			if (parallelism < 0) {
-				throw new IllegalArgumentException(Long.toString(parallelism));
-			}
-			return new PipelineParallel<OUT, OUT>(this.getSource(), this, parallelism, executorService, new PassThoughSpliterator<>(this, this.getSpliterator()));
+			Require.equalOrGreater(parallelism, 1, "parallelism");
+			Objects.requireNonNull(executorService);
+			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new PassThoughSpliterator<>(this, this.getSpliterator()));
 		}
 		return this;
 	}
 	
 	@Override
 	public MxStream<OUT> exceptionHandler(MxStreamExceptionHandler exceptionHandler) {
+		Objects.requireNonNull(exceptionHandler);
 		this.getSource().exceptionHandler(exceptionHandler);
 		return this;
 	}
@@ -98,18 +103,19 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	@Override
 	public MxStream<OUT> filter(Predicate<? super OUT> predicate) {
+		Objects.requireNonNull(predicate);
 		return this.filter(() -> predicate);
 	}
 	
 	@Override
 	public MxStream<OUT> filter(Supplier<Predicate<? super OUT>> supplier) {
-		return new Pipeline<OUT, OUT>(this.getSource(), this, new FilteringSpliterator<>(this, this.getSpliterator(), supplier));
+		Objects.requireNonNull(supplier);
+		return new Pipeline<>(this.getSource(), this, new FilteringSpliterator<>(this, this.getSpliterator(), supplier));
 	}
 	
 	@Override
 	public MxStream<OUT> skip(final long n) {
-		if (n < 0)
-			throw new IllegalArgumentException(Long.toString(n));
+		Require.equalOrGreater(n, 0, "n");
 		if (n == 0) {
 			return this;
 		} else {
@@ -120,100 +126,127 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	@Override
 	public <R> MxStream<R> map(Function<? super OUT, ? extends R> mapper) {
+		Objects.requireNonNull(mapper);
 		return this.map(() -> mapper);
 	}
 	
 	@Override
 	public <R> MxStream<R> map(Supplier<Function<? super OUT, ? extends R>> supplier) {
-		return new Pipeline<OUT, R>(this.getSource(), this, new MapSpliterator<>(this, this.getSpliterator(), supplier));
+		Objects.requireNonNull(supplier);
+		return new Pipeline<>(this.getSource(), this, new MapSpliterator<>(this, this.getSpliterator(), supplier));
 	}
 	
 	@Override
 	public <R> MxStream<R> flatMap(Function<? super OUT, ? extends Stream<? extends R>> mapper) {
+		Objects.requireNonNull(mapper);
 		return this.flatMap(() -> mapper);
 	}
 	
 	@Override
 	public <R> MxStream<R> flatMap(Supplier<Function<? super OUT, ? extends Stream<? extends R>>> supplier) {
-		return new Pipeline<OUT, R>(this.getSource(), this, new FlatMapSpliterator<>(this, this.getSpliterator(), supplier));
+		Objects.requireNonNull(supplier);
+		return new Pipeline<>(this.getSource(), this, new FlatMapSpliterator<>(this, this.getSpliterator(), supplier));
 	}
 	
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, Function<? super OUT, ? extends R> mapper) {
-		return this.asyncMap(parallelism, Executors.newVirtualThreadPerTaskExecutor(), mapper);
+		Objects.requireNonNull(mapper);
+		return this.asyncMap(parallelism, ForkJoinPool.commonPool(), mapper);
 	}
 	
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, Supplier<Function<? super OUT, ? extends R>> supplier) {
-		return this.asyncMap(parallelism, Executors.newVirtualThreadPerTaskExecutor(), supplier);
+		Objects.requireNonNull(supplier);
+		return this.asyncMap(parallelism, ForkJoinPool.commonPool(), supplier);
 	}
 	
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Function<? super OUT, ? extends R> mapper) {
+		Require.equalOrGreater(parallelism, 1, "parallelism");
+		Objects.requireNonNull(executorService);
+		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, executorService, () -> mapper);
 	}
 	
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<Function<? super OUT, ? extends R>> supplier) {
-		return new Pipeline<OUT, R>(this.getSource(), this, new AsyncMapSpliterator<>(this, this.getSpliterator(), parallelism, executorService, supplier));
+		Objects.requireNonNull(executorService);
+		Objects.requireNonNull(supplier);
+		Require.equalOrGreater(parallelism, 1, "parallelism");
+		return new Pipeline<>(this.getSource(), this, new AsyncMapSpliterator<>(this, this.getSpliterator(), parallelism, executorService, supplier));
 	}
 	
 	@Override
 	public MxStream<List<OUT>> batch(int batchSize) {
-		if (batchSize < 0) {
-			throw new IllegalArgumentException(Long.toString(batchSize));
-		}
-		return new Pipeline<OUT, List<OUT>>(this.getSource(), this, new BatchSpliterator<>(this, this.getSpliterator(), batchSize));
+		Require.equalOrGreater(batchSize, 1, "batchSize");
+		return new Pipeline<>(this.getSource(), this, new BatchSpliterator<>(this, this.getSpliterator(), batchSize));
+	}
+	
+	@Override
+	public MxStream<List<OUT>> batch(int batchSize, long timeout, TimeUnit unit) {
+		Require.equalOrGreater(batchSize, 1, "batchSize");
+		Require.equalOrGreater(timeout, 1, "timeout");
+		Objects.requireNonNull(unit);
+		return new Pipeline<>(this.getSource(), this, new BatchTimeoutSpliterator<>(this, this.getSpliterator(), batchSize, timeout, unit));
 	}
 	
 	@Override
 	public MxStream<OUT> peek(Consumer<? super OUT> action) {
+		Objects.requireNonNull(action);
 		return peek(() -> action);
 	}
 	
 	@Override
 	public MxStream<OUT> peek(Supplier<Consumer<? super OUT>> supplier) {
-		return new Pipeline<OUT, OUT>(this.getSource(), this, new PeekSpliterator<>(this, this.getSpliterator(), supplier));
+		Objects.requireNonNull(supplier);
+		return new Pipeline<>(this.getSource(), this, new PeekSpliterator<>(this, this.getSpliterator(), supplier));
 	}
 	
 	@Override
 	public MxStream<OUT> sorted(int windowSize, Comparator<? super OUT> comparator) {
+		Require.equalOrGreater(windowSize, 1, "windowSize");
+		Objects.requireNonNull(comparator);
 		return sorted(windowSize, () -> comparator);
 	}
 	
 	@Override
 	public MxStream<OUT> sorted(int windowSize, Supplier<Comparator<? super OUT>> supplier) {
-		return new Pipeline<OUT, OUT>(this.getSource(), this, new WindowedSortSpliterator<>(this, this.getSpliterator(), windowSize, supplier));
+		Require.equalOrGreater(windowSize, 1, "windowSize");
+		Objects.requireNonNull(supplier);
+		return new Pipeline<>(this.getSource(), this, new WindowedSortSpliterator<>(this, this.getSpliterator(), windowSize, supplier));
 	}
 	
 	@Override
 	public MxStream<OUT> fanOut(int bufferSize) {
+		Require.equalOrGreater(bufferSize, 1, "bufferSize");
 		return this.fanOut(bufferSize, this.getExecutorService());
 	}
 	
 	@Override
 	public MxStream<OUT> fanOut(int bufferSize, ExecutorService executorService) {
 		if (!this.isParallel()) {
-			if (bufferSize < 0) {
-				throw new IllegalArgumentException(Long.toString(bufferSize));
-			}
-			return new PipelineParallel<OUT, OUT>(this.getSource(), this, this.getParallelism(), executorService, new FanOutSpliterator<>(this, this.getSpliterator(), bufferSize));
+			Require.equalOrGreater(bufferSize, 1, "bufferSize");
+			Objects.requireNonNull(executorService);
+			return new PipelineParallel<>(this.getSource(), this, this.getParallelism(), executorService, new FanOutSpliterator<>(this, this.getSpliterator(), bufferSize));
 		}
 		return this;
 	}
 	
 	@Override
 	public void forEach(Consumer<? super OUT> action) {
+		Objects.requireNonNull(action);
 		this.forEach(() -> action);
 	}
 	
 	@Override
 	public void forEach(Supplier<Consumer<? super OUT>> supplier) {
+		Objects.requireNonNull(supplier);
 		processSink(new ForEachSink<>(this, getSpliterator(), supplier));
 	}
 	
 	@Override
 	public <R, A> R collect(Collector<? super OUT, A, R> collector) {
+		Objects.requireNonNull(collector);
 		MxCollector<? super OUT, A, R> mxCollector = new MxCollector<>(collector);
 		this.processSink(new CollectorSink<>(this, getSpliterator(), mxCollector));
 		return mxCollector.finish();

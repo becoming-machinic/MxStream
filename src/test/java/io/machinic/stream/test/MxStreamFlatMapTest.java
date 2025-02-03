@@ -95,7 +95,7 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapCustomExceptionHandler() {
 		Assertions.assertEquals(INTEGER_LIST_B, MxStream.of(INTEGER_LIST_C).exceptionHandler(NOOP_EXCEPTION_HANDLER).flatMap(list -> {
-			if (list.getFirst() % 2 != 0) {
+			if (list.get(0) % 2 != 0) {
 				throw new RuntimeException("flatMap operation exception");
 			}
 			return list.stream();
@@ -105,7 +105,7 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapParallelCustomExceptionHandler() {
 		Assertions.assertEquals(INTEGER_SET_B, MxStream.parallel(INTEGER_LIST_C, 4).exceptionHandler(NOOP_EXCEPTION_HANDLER).flatMap(list -> {
-			if (list.getFirst() % 2 != 0) {
+			if (list.get(0) % 2 != 0) {
 				throw new RuntimeException("flatMap operation exception");
 			}
 			return list.stream();

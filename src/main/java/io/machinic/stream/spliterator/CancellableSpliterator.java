@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 
 public class CancellableSpliterator<T> extends AbstractSpliterator<T, T> {
 	
-	private AtomicBoolean cancelled;
+	private final AtomicBoolean cancelled;
 	
 	public CancellableSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator) {
 		super(stream, previousSpliterator);

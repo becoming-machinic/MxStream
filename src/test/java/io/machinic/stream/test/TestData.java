@@ -40,10 +40,14 @@ public class TestData {
 	public static final List<List<Integer>> INTEGER_LIST_D = List.of(List.of(1, 2, 3, 4, 5), List.of(6, 7, 8, 9, 10));
 	public static final Set<List<Integer>> INTEGER_SET_D = new HashSet<>(INTEGER_LIST_D);
 	
+	public static final List<List<Integer>> INTEGER_LIST_E = INTEGER_LIST_A.stream().map(List::of).toList();
+	public static final Set<List<Integer>> INTEGER_SET_E = INTEGER_LIST_A.stream().map(List::of).collect(Collectors.toSet());
+	
 	public static final MxStreamExceptionHandler NOOP_EXCEPTION_HANDLER = new MxStreamExceptionHandler() {
 		@Override
 		public void onException(Exception e, Object value) throws StreamException {
 			// NOOP on exception
+			System.out.println("Custom MxStreamExceptionHandler ignoring exception: " + e);
 		}
 	};
 }

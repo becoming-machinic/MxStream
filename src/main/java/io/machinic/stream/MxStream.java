@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -92,6 +93,8 @@ public interface MxStream<T> {
 	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	MxStream<List<T>> batch(int batchSize);
+	
+	MxStream<List<T>> batch(int batchSize, long timeout, TimeUnit timeUnit);
 	
 	MxStream<T> peek(Consumer<? super T> action);
 	

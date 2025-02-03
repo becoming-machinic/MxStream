@@ -17,6 +17,10 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamEventException;
+import io.machinic.stream.StreamException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -31,6 +35,8 @@ import java.util.function.Supplier;
 
 public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	
+	private static Logger logger = LoggerFactory.getLogger(MxStream.class);
+	
 	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
 	private final Function<? super IN, ? extends OUT> mapper;
 	private final int parallelism;
@@ -43,48 +49,15 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 		this.mapper = supplier.get();
 		this.parallelism = parallelism;
 		this.executorService = executorService;
-		this.queue = new ArrayDeque<>(parallelism + 1);
-	}
-	
-	private AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, Supplier<Function<? super IN, ? extends OUT>> supplier, Queue<Future<OUT>> queue) {
-		super(stream, previousSpliterator);
-		this.parallelism = parallelism;
-		this.supplier = supplier;
-		this.mapper = supplier.get();
-		this.executorService = executorService;
-		this.queue = queue;
+		this.queue = new ArrayDeque<>(parallelism + 2);
 	}
 	
 	private AsyncTask createTask(IN input) {
 		return new AsyncTask(input);
 	}
 	
-	protected void safeEnqueue(AsyncTask asyncTask) {
-		if (this.isParallel()) {
-			synchronized (queue) {
-				enqueue(asyncTask);
-			}
-		} else {
-			enqueue(asyncTask);
-		}
-	}
-	
 	private void enqueue(AsyncTask asyncTask) {
 		queue.add(this.executorService.submit(asyncTask));
-	}
-	
-	/**
-	 * Call nonBlockingDequeue with synchronized if needed.
-	 *
-	 * @return Future<OUT>
-	 */
-	protected Future<OUT> safeNonBlockingDequeue() {
-		if (this.isParallel()) {
-			synchronized (queue) {
-				return nonBlockingDequeue();
-			}
-		}
-		return nonBlockingDequeue();
 	}
 	
 	private Future<OUT> nonBlockingDequeue() {
@@ -95,26 +68,8 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 		return null;
 	}
 	
-	protected Future<OUT> safeBlockingDequeue() {
-		if (this.isParallel()) {
-			synchronized (queue) {
-				return blockingDequeue();
-			}
-		}
-		return blockingDequeue();
-	}
-	
-	private Future<OUT> blockingDequeue() {
-		Future<OUT> future = queue.poll();
-		if (future != null) {
-			try {
-				future.get();
-				return future;
-			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
-			}
-		}
-		return null;
+	private Future<OUT> dequeue() {
+		return queue.poll();
 	}
 	
 	protected int getQueueSize() {
@@ -128,37 +83,46 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
-		// finish completed tasks
-		Future<OUT> future;
-		while ((future = safeNonBlockingDequeue()) != null) {
+		
+		// process completed futures
+		Future<OUT> future = nonBlockingDequeue();
+		if (future == null && this.getQueueSize() >= parallelism) {
+			future = dequeue();
+		}
+		
+		if (future != null) {
 			try {
 				action.accept(future.get());
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
-			}
-		}
-		
-		if (this.getQueueSize() >= parallelism) {
-			Future<OUT> blockingFuture = safeBlockingDequeue();
-			if (blockingFuture != null) {
-				try {
-					action.accept(blockingFuture.get());
-				} catch (InterruptedException | ExecutionException e) {
-					throw new RuntimeException(e);
+			} catch (ExecutionException e) {
+				if (e.getCause() != null && e.getCause() instanceof StreamEventException) {
+					logger.debug("asyncMap operation skipping message due to caught exception {}", e.getCause().getMessage());
+				} else if (e.getCause() != null && e.getCause() instanceof StreamException) {
+					throw (StreamException) e.getCause();
+				} else {
+					throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
 				}
+			} catch (Exception e) {
+				throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
 			}
 		}
-		boolean canAdvance = this.previousSpliterator.tryAdvance(value ->
-		{
-			this.safeEnqueue(this.createTask(value));
-		});
 		
-		return canAdvance || this.getQueueSize() != 0;
+		boolean canAdvance;
+		do {
+			canAdvance = this.previousSpliterator.tryAdvance(value ->
+			{
+				this.enqueue(this.createTask(value));
+			});
+		} while (canAdvance && this.getQueueSize() <= parallelism);
+		
+		return canAdvance
+				|| this.getQueueSize() != 0;
 	}
 	
 	@Override
 	public AbstractSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
-		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, supplier, queue);
+		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, supplier);
 	}
 	
 	public class AsyncTask implements Callable<OUT> {
@@ -173,7 +137,8 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 			try {
 				return mapper.apply(input);
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				getStream().exceptionHandler().onException(e, input);
+				throw new StreamEventException(input, String.format("Event %s failed. Caused by %s", input, e.getMessage()), e);
 			}
 		}
 	}
