@@ -57,9 +57,12 @@ public class MxStreamPeekTest {
 	@Test
 	public void peekParallelTest() {
 		AtomicInteger counter = new AtomicInteger(0);
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A).peek(integer -> {
-			counter.getAndIncrement();
-		}).toSet());
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.peek(integer -> {
+							counter.getAndIncrement();
+						}).toSet());
 		Assertions.assertEquals(INTEGER_LIST_A.size(), counter.get());
 	}
 	
@@ -76,7 +79,11 @@ public class MxStreamPeekTest {
 	public void peekParallelSupplierTest() {
 		CountingSupplier<Consumer<? super Integer>> supplier = new CountingSupplier<>(integer -> {
 		});
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A, 3).peek(supplier).toSet());
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(3, 2)
+						.peek(supplier)
+						.toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
 		Assertions.assertEquals(4, supplier.getCount());
 	}
@@ -94,9 +101,11 @@ public class MxStreamPeekTest {
 	@Test
 	public void peekParallelDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.parallel(INTEGER_LIST_A).peek(value -> {
-				throw new RuntimeException("peek operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_A)
+					.fanOut(2, 2)
+					.peek(value -> {
+						throw new RuntimeException("peek operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: peek operation exception", exception.getMessage());
 	}
@@ -113,7 +122,8 @@ public class MxStreamPeekTest {
 	@Test
 	public void peekParallelCustomExceptionHandler() {
 		Assertions.assertEquals(INTEGER_SET_B,
-				MxStream.parallel(INTEGER_SET_B, 4)
+				MxStream.of(INTEGER_SET_B)
+						.fanOut(4, 2)
 						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
 						.peek(integer -> {
 							if (integer % 2 != 0) {

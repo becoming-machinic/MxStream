@@ -61,7 +61,8 @@ public class MxStreamWindowedSortTest {
 		Collections.shuffle(testData);
 		
 		Assertions.assertEquals(INTEGER_SET_A,
-				MxStream.parallel(testData, 2)
+				MxStream.of(testData)
+						.fanOut(2, 2)
 						.sorted(50, Comparator.naturalOrder())
 						.toSet());
 	}

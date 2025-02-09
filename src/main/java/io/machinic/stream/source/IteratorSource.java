@@ -19,7 +19,6 @@ package io.machinic.stream.source;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.ExecutorService;
 
 public class IteratorSource<IN> extends PipelineSource<IN> {
 	
@@ -29,10 +28,6 @@ public class IteratorSource<IN> extends PipelineSource<IN> {
 	
 	public IteratorSource(Spliterator<IN> spliterator, boolean parallel) {
 		super(spliterator, parallel);
-	}
-	
-	public IteratorSource(Spliterator<IN> spliterator, boolean parallel, int parallelism, ExecutorService executorService) {
-		super(spliterator, parallel, parallelism, executorService);
 	}
 	
 	@Override

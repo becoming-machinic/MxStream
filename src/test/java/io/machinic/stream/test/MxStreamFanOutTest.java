@@ -58,7 +58,7 @@ public class MxStreamFanOutTest {
 	
 	@Test
 	public void fanOutParallelTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A, 2)
+		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
 				.fanOut(2, 50)
 				.toSet());
 	}

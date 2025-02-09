@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -146,53 +145,11 @@ public interface MxStream<T> {
 		return new StreamSource<>(stream, parallelism, executorService);
 	}
 	
-	static <T> MxStream<T> of(Spliterator<T> spliterator, boolean parallel) {
-		return new IteratorSource<>(spliterator, parallel);
-	}
-	
-	static <T> MxStream<T> parallel(Spliterator<T> spliterator) {
-		return new IteratorSource<>(spliterator, true);
-	}
-	
 	static <T> io.machinic.stream.MxStream<T> of(Iterator<T> iterator) {
 		return new IteratorSource<>(iterator);
 	}
 	
 	static <T> io.machinic.stream.MxStream<T> of(Iterable<T> iterable) {
 		return new IteratorSource<>(iterable.spliterator(), false);
-	}
-	
-	/**
-	 * Create a parallel MxStream from the provided source. Parallel streams will process items in a non-deterministic order.
-	 *
-	 * @param iterable
-	 * 		stream source
-	 */
-	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable) {
-		return new IteratorSource<>(iterable.spliterator(), true);
-	}
-	
-	/**
-	 * Create a parallel MxStream from the provided source. Parallel streams will process items in a non-deterministic order.
-	 *
-	 * @param iterable
-	 * 		stream source
-	 * @param parallelism
-	 * 		number of threads that will be used to process stream
-	 */
-	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable, int parallelism) {
-		return new IteratorSource<>(iterable.spliterator(), true, parallelism, null);
-	}
-	
-	/**
-	 * @param iterable
-	 * 		stream source
-	 * @param parallelism
-	 * 		number of threads that will be used to process stream
-	 * @param executorService
-	 * 		the ExecutorService that stream will use
-	 */
-	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable, int parallelism, ExecutorService executorService) {
-		return new IteratorSource<>(iterable.spliterator(), true, parallelism, executorService);
 	}
 }

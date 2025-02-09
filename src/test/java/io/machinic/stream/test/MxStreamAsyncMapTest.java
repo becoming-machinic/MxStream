@@ -57,12 +57,20 @@ public class MxStreamAsyncMapTest {
 	
 	@Test
 	public void asyncMapParallelTest() {
-		Assertions.assertEquals(STRING_SET_A, MxStream.parallel(INTEGER_LIST_A).asyncMap(1, integer -> Integer.toString(integer)).toSet());
+		Assertions.assertEquals(STRING_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.asyncMap(1, integer -> Integer.toString(integer))
+						.toSet());
 	}
 	
 	@Test
 	public void asyncMapParallelLargerParallelismTest() {
-		Assertions.assertEquals(STRING_SET_A, MxStream.parallel(INTEGER_LIST_A).asyncMap(10, integer -> Integer.toString(integer)).toSet());
+		Assertions.assertEquals(STRING_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.asyncMap(10, integer -> Integer.toString(integer))
+						.toSet());
 	}
 	
 	@Test
@@ -79,7 +87,11 @@ public class MxStreamAsyncMapTest {
 	@Test
 	public void mapParallelSupplierTest() {
 		CountingSupplier<Function<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
-		Assertions.assertEquals(STRING_SET_A, MxStream.parallel(INTEGER_LIST_A, 3).asyncMap(2, supplier).toSet());
+		Assertions.assertEquals(STRING_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(3, 2)
+						.asyncMap(2, supplier)
+						.toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
 		Assertions.assertEquals(4, supplier.getCount());
 	}
@@ -97,9 +109,11 @@ public class MxStreamAsyncMapTest {
 	@Test
 	public void mapParallelDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.parallel(INTEGER_LIST_A).asyncMap(2, value -> {
-				throw new RuntimeException("map operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_A)
+					.fanOut(2, 2)
+					.asyncMap(2, value -> {
+						throw new RuntimeException("map operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: map operation exception", exception.getMessage());
 	}
@@ -120,7 +134,8 @@ public class MxStreamAsyncMapTest {
 	@Test
 	public void mapParallelCustomExceptionHandler() {
 		Assertions.assertEquals(STRING_SET_B,
-				MxStream.parallel(INTEGER_LIST_A, 4)
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(4, 2)
 						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
 						.asyncMap(2, integer -> {
 							if (integer % 2 != 0) {

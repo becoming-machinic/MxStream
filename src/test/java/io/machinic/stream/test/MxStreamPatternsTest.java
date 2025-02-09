@@ -39,7 +39,24 @@ public class MxStreamPatternsTest {
 	}
 	
 	@Test
-	public void parallelMapTest() {
+	public void asyncMapTest() {
+		String joined = MxStream.of(new IntegerGeneratorIterator(500))
+				.asyncMap(100, ForkJoinPool.commonPool(),
+						integer -> {
+							try {
+								// slow task
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							return Integer.toString(integer);
+						})
+				.collect(Collectors.joining(","));
+		System.out.println(joined);
+	}
+	
+	@Test
+	public void parallelAsyncMapTest() {
 		String joined = MxStream.of(new IntegerGeneratorIterator(500))
 				.asyncMap(100, ForkJoinPool.commonPool(),
 						integer -> {

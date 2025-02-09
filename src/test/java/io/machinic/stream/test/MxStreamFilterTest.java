@@ -64,18 +64,24 @@ public class MxStreamFilterTest {
 	
 	@Test
 	public void filterParallelTest() {
-		Assertions.assertArrayEquals(INTEGER_LIST_B.toArray(), MxStream.parallel(INTEGER_LIST_A).filter(integer -> {
-			return integer % 2 == 0;
-		}).toSet().toArray());
+		Assertions.assertArrayEquals(INTEGER_LIST_B.toArray(),
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.filter(integer -> {
+							return integer % 2 == 0;
+						}).toSet().toArray());
 	}
 	
 	@Test
 	public void filterCountParallelTest() {
 		AtomicInteger counter = new AtomicInteger(0);
-		Assertions.assertArrayEquals(INTEGER_LIST_A.toArray(), MxStream.parallel(INTEGER_LIST_A).filter(integer -> {
-			counter.getAndIncrement();
-			return true;
-		}).toSet().toArray());
+		Assertions.assertArrayEquals(INTEGER_LIST_A.toArray(),
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.filter(integer -> {
+							counter.getAndIncrement();
+							return true;
+						}).toSet().toArray());
 		Assertions.assertEquals(INTEGER_LIST_A.size(), counter.get());
 	}
 	
@@ -90,7 +96,11 @@ public class MxStreamFilterTest {
 	@Test
 	public void filterParallelSupplierTest() {
 		CountingSupplier<Predicate<? super Integer>> supplier = new CountingSupplier<>(integer -> integer % 2 == 0);
-		Assertions.assertEquals(INTEGER_SET_B, MxStream.parallel(INTEGER_LIST_A, 3).filter(supplier).toSet());
+		Assertions.assertEquals(INTEGER_SET_B,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(3, 2)
+						.filter(supplier)
+						.toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
 		Assertions.assertEquals(4, supplier.getCount());
 	}
@@ -98,9 +108,10 @@ public class MxStreamFilterTest {
 	@Test
 	public void filterDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.of(INTEGER_LIST_A).filter(value -> {
-				throw new RuntimeException("filter operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_A)
+					.filter(value -> {
+						throw new RuntimeException("filter operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: filter operation exception", exception.getMessage());
 	}
@@ -108,9 +119,11 @@ public class MxStreamFilterTest {
 	@Test
 	public void filterParallelDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.parallel(INTEGER_LIST_A).filter(value -> {
-				throw new RuntimeException("filter operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_A)
+					.fanOut(2, 2)
+					.filter(value -> {
+						throw new RuntimeException("filter operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: filter operation exception", exception.getMessage());
 	}
@@ -127,12 +140,17 @@ public class MxStreamFilterTest {
 	
 	@Test
 	public void filterParallelCustomExceptionHandler() {
-		Assertions.assertEquals(INTEGER_SET_B, MxStream.parallel(INTEGER_LIST_A, 4).exceptionHandler(NOOP_EXCEPTION_HANDLER).filter(integer -> {
-			if (integer % 2 != 0) {
-				throw new RuntimeException("map operation exception");
-			}
-			return true;
-		}).toSet());
+		Assertions.assertEquals(INTEGER_SET_B,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(4, 2)
+						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
+						.fanOut(2, 2)
+						.filter(integer -> {
+							if (integer % 2 != 0) {
+								throw new RuntimeException("map operation exception");
+							}
+							return true;
+						}).toSet());
 	}
 	
 }

@@ -62,9 +62,13 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapParallelTest() {
 		AtomicInteger counter = new AtomicInteger(0);
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_C).flatMap(Collection::stream).peek(integer -> {
-			counter.getAndIncrement();
-		}).toSet());
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_C)
+						.fanOut(2, 2)
+						.flatMap(Collection::stream)
+						.peek(integer -> {
+							counter.getAndIncrement();
+						}).toSet());
 		Assertions.assertEquals(INTEGER_LIST_A.size(), counter.get());
 	}
 	
@@ -79,7 +83,10 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapParallelSupplierTest() {
 		CountingSupplier<Function<? super List<Integer>, ? extends Stream<? extends Integer>>> supplier = new CountingSupplier<>(Collection::stream);
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_C, 3).flatMap(supplier).toSet());
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_C)
+						.fanOut(3, 2)
+						.flatMap(supplier).toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
 		Assertions.assertEquals(4, supplier.getCount());
 	}
@@ -97,9 +104,11 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapParallelDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.parallel(INTEGER_LIST_C).flatMap(value -> {
-				throw new RuntimeException("flatMap operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_C)
+					.fanOut(2, 2)
+					.flatMap(value -> {
+						throw new RuntimeException("flatMap operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: flatMap operation exception", exception.getMessage());
 	}
@@ -116,11 +125,13 @@ public class MxStreamFlatMapTest {
 	
 	@Test
 	public void flatMapParallelCustomExceptionHandler() {
-		Assertions.assertEquals(INTEGER_SET_B, MxStream.parallel(INTEGER_LIST_C, 4).exceptionHandler(NOOP_EXCEPTION_HANDLER).flatMap(list -> {
-			if (list.get(0) % 2 != 0) {
-				throw new RuntimeException("flatMap operation exception");
-			}
-			return list.stream();
-		}).toSet());
+		Assertions.assertEquals(INTEGER_SET_B, MxStream.of(INTEGER_LIST_C).exceptionHandler(NOOP_EXCEPTION_HANDLER)
+				.fanOut(4, 2)
+				.flatMap(list -> {
+					if (list.get(0) % 2 != 0) {
+						throw new RuntimeException("flatMap operation exception");
+					}
+					return list.stream();
+				}).toSet());
 	}
 }

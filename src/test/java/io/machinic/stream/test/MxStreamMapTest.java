@@ -53,7 +53,11 @@ public class MxStreamMapTest {
 	
 	@Test
 	public void mapParallelTest() {
-		Assertions.assertEquals(STRING_SET_A, MxStream.parallel(INTEGER_LIST_A).map(integer -> Integer.toString(integer)).toSet());
+		Assertions.assertEquals(STRING_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.map(integer -> Integer.toString(integer))
+						.toSet());
 	}
 	
 	@Test
@@ -67,7 +71,10 @@ public class MxStreamMapTest {
 	@Test
 	public void mapParallelSupplierTest() {
 		CountingSupplier<Function<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
-		Assertions.assertEquals(STRING_SET_A, MxStream.parallel(INTEGER_LIST_A, 3).map(supplier).toSet());
+		Assertions.assertEquals(STRING_SET_A, MxStream.of(INTEGER_LIST_A)
+				.fanOut(3, 2)
+				.map(supplier)
+				.toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
 		Assertions.assertEquals(4, supplier.getCount());
 	}
@@ -85,9 +92,11 @@ public class MxStreamMapTest {
 	@Test
 	public void mapParallelDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
-			MxStream.parallel(INTEGER_LIST_A).map(value -> {
-				throw new RuntimeException("map operation exception");
-			}).toList();
+			MxStream.of(INTEGER_LIST_A)
+					.fanOut(2, 2)
+					.map(value -> {
+						throw new RuntimeException("map operation exception");
+					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: map operation exception", exception.getMessage());
 	}
@@ -108,7 +117,8 @@ public class MxStreamMapTest {
 	@Test
 	public void mapParallelCustomExceptionHandler() {
 		Assertions.assertEquals(STRING_SET_B,
-				MxStream.parallel(INTEGER_LIST_A, 4)
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(4, 2)
 						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
 						.map(integer -> {
 							if (integer % 2 != 0) {

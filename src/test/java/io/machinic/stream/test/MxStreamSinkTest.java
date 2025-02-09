@@ -51,10 +51,13 @@ public class MxStreamSinkTest {
 	
 	@Test
 	public void toListParallelTest() {
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.parallel(INTEGER_LIST_A).toList()
-				.stream()
-				.sorted()
-				.toList());
+		Assertions.assertEquals(INTEGER_LIST_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.toList()
+						.stream()
+						.sorted()
+						.toList());
 	}
 	
 	@Test
@@ -83,7 +86,8 @@ public class MxStreamSinkTest {
 	@Test
 	public void forEachParallelTest() {
 		List<Integer> eachList = Collections.synchronizedList(new ArrayList<>());
-		MxStream.parallel(INTEGER_LIST_A, 10)
+		MxStream.of(INTEGER_LIST_A)
+				.fanOut(10, 2)
 				.forEach(eachList::add);
 		Assertions.assertEquals(INTEGER_LIST_A, eachList.stream().sorted().toList());
 	}
@@ -96,8 +100,10 @@ public class MxStreamSinkTest {
 	
 	@Test
 	public void collectorCountingParallelTest() {
-		Assertions.assertEquals(INTEGER_LIST_A.size(), MxStream.parallel(INTEGER_LIST_A, 4)
-				.collect(Collectors.counting()));
+		Assertions.assertEquals(INTEGER_LIST_A.size(),
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(4, 2)
+						.collect(Collectors.counting()));
 	}
 	
 }

@@ -47,35 +47,30 @@ public class MxStreamSourceTest {
 	}
 	
 	@Test
-	public void sourceListParallelTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A).toSet());
+	public void sourceListFanOutTest() {
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2)
+						.toSet());
 	}
 	
 	@Test
-	public void sourceListParallelThreadThreadPoolTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A, 2, ForkJoinPool.commonPool()).toSet());
+	public void sourceListFanOutThreadThreadPoolTest() {
+		Assertions.assertEquals(INTEGER_SET_A,
+				MxStream.of(INTEGER_LIST_A)
+						.fanOut(2, 2, ForkJoinPool.commonPool())
+						.toSet());
 	}
 	
 	@Test
 	public void sourceStreamTest() {
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream()).toList());
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream(), 3, ForkJoinPool.commonPool()).toList());
 	}
 	
 	@Test
 	public void sourceStreamParallelTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.parallelStream()).toSet());
-	}
-	
-	@Test
-	public void sourceSpliteratorTest() {
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream().spliterator(), false).toList());
-	}
-	
-	@Test
-	public void sourceSpliteratorParallelTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.stream().spliterator(), true).toSet());
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A.stream().spliterator()).toSet());
+		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.parallelStream(), 3, ForkJoinPool.commonPool()).toSet());
 	}
 	
 	@Test
