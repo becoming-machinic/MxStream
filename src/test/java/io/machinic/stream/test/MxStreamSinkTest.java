@@ -26,15 +26,18 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ForkJoinPool;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
 
 @Execution(ExecutionMode.SAME_THREAD)
-public class MxStreamSourceTest {
+public class MxStreamSinkTest {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(MxStreamSourceTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamSinkTest.class);
 	
 	@BeforeEach
 	void setUp(TestInfo testInfo) {
@@ -42,44 +45,59 @@ public class MxStreamSourceTest {
 	}
 	
 	@Test
-	public void sourceListTest() {
+	public void toListTest() {
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A).toList());
 	}
 	
 	@Test
-	public void sourceListParallelTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A).toSet());
+	public void toListParallelTest() {
+		Assertions.assertEquals(INTEGER_LIST_A, MxStream.parallel(INTEGER_LIST_A).toList()
+				.stream()
+				.sorted()
+				.toList());
 	}
 	
 	@Test
-	public void sourceListParallelThreadThreadPoolTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A, 2, ForkJoinPool.commonPool()).toSet());
+	public void toSetTest() {
+		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.stream()).toSet());
 	}
 	
 	@Test
-	public void sourceStreamTest() {
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream()).toList());
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream(), 3, ForkJoinPool.commonPool()).toList());
+	public void toStreamTest() {
+		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A).toStream().toList());
 	}
 	
 	@Test
-	public void sourceStreamParallelTest() {
+	public void toSetParallelTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.parallelStream()).toSet());
 	}
 	
 	@Test
-	public void sourceSpliteratorTest() {
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.stream().spliterator(), false).toList());
+	public void forEachTest() {
+		List<Integer> eachList = new ArrayList<>();
+		MxStream.of(INTEGER_LIST_A)
+				.forEach(eachList::add);
+		Assertions.assertEquals(INTEGER_LIST_A, eachList);
 	}
 	
 	@Test
-	public void sourceSpliteratorParallelTest() {
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A.stream().spliterator(), true).toSet());
-		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A.stream().spliterator()).toSet());
+	public void forEachParallelTest() {
+		List<Integer> eachList = Collections.synchronizedList(new ArrayList<>());
+		MxStream.parallel(INTEGER_LIST_A, 10)
+				.forEach(eachList::add);
+		Assertions.assertEquals(INTEGER_LIST_A, eachList.stream().sorted().toList());
 	}
 	
 	@Test
-	public void sourceIteratorTest() {
-		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.iterator()).toList());
+	public void collectorCountingTest() {
+		Assertions.assertEquals(INTEGER_LIST_A.size(), MxStream.of(INTEGER_LIST_A)
+				.collect(Collectors.counting()));
 	}
+	
+	@Test
+	public void collectorCountingParallelTest() {
+		Assertions.assertEquals(INTEGER_LIST_A.size(), MxStream.parallel(INTEGER_LIST_A, 4)
+				.collect(Collectors.counting()));
+	}
+	
 }

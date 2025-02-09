@@ -40,14 +40,6 @@ public abstract class AbstractSpliterator<IN, OUT> implements Spliterator<OUT> {
 		return this.stream.isParallel();
 	}
 	
-	protected int getParallelism() {
-		return this.stream.getParallelism();
-	}
-	
-	protected Spliterator<IN> getPreviousSpliterator() {
-		return previousSpliterator;
-	}
-	
 	protected abstract Spliterator<OUT> split(Spliterator<IN> spliterator);
 	
 	@Override

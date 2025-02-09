@@ -18,6 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.test.utils.CountingSupplier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ public class MxStreamPeekTest {
 	}
 	
 	@Test
-	public void peekTest() throws Exception {
+	public void peekTest() {
 		AtomicInteger index = new AtomicInteger(0);
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A).peek(integer -> {
 			Assertions.assertEquals(INTEGER_LIST_A.get(index.getAndIncrement()), integer);
@@ -54,7 +55,7 @@ public class MxStreamPeekTest {
 	}
 	
 	@Test
-	public void peekParallelTest() throws Exception {
+	public void peekParallelTest() {
 		AtomicInteger counter = new AtomicInteger(0);
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A).peek(integer -> {
 			counter.getAndIncrement();
@@ -63,7 +64,7 @@ public class MxStreamPeekTest {
 	}
 	
 	@Test
-	public void peekSupplierTest() throws Exception {
+	public void peekSupplierTest() {
 		CountingSupplier<Consumer<? super Integer>> supplier = new CountingSupplier<>(integer -> {
 		});
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A).peek(supplier).toList());
@@ -72,7 +73,7 @@ public class MxStreamPeekTest {
 	}
 	
 	@Test
-	public void peekParallelSupplierTest() throws Exception {
+	public void peekParallelSupplierTest() {
 		CountingSupplier<Consumer<? super Integer>> supplier = new CountingSupplier<>(integer -> {
 		});
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.parallel(INTEGER_LIST_A, 3).peek(supplier).toSet());

@@ -18,6 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.test.utils.CountingSupplier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,16 +117,16 @@ public class MxStreamAsyncMapTest {
 						}).toSet());
 	}
 	
-//	@Test
-//	public void mapParallelCustomExceptionHandler() {
-//		Assertions.assertEquals(STRING_SET_B,
-//				MxStream.parallel(INTEGER_LIST_A, 4)
-//						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
-//						.asyncMap(2, integer -> {
-//							if (integer % 2 != 0) {
-//								throw new RuntimeException("map operation exception");
-//							}
-//							return Integer.toString(integer);
-//						}).toSet());
-//	}
+	@Test
+	public void mapParallelCustomExceptionHandler() {
+		Assertions.assertEquals(STRING_SET_B,
+				MxStream.parallel(INTEGER_LIST_A, 4)
+						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
+						.asyncMap(2, integer -> {
+							if (integer % 2 != 0) {
+								throw new RuntimeException("map operation exception");
+							}
+							return Integer.toString(integer);
+						}).toSet());
+	}
 }

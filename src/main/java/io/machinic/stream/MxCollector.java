@@ -45,7 +45,9 @@ public class MxCollector<T, A, R> implements Supplier<A> {
 	@SuppressWarnings("OptionalGetWithoutIsPresent")
 	public R finish() {
 		if (containers.size() > 1) {
-			return collector.finisher().apply(containers.stream().reduce((left, right) -> collector.combiner().apply(left, right))
+			return collector.finisher().apply(containers
+					.stream()
+					.reduce((left, right) -> collector.combiner().apply(left, right))
 					.get());
 		}
 		return collector.finisher().apply(containers.get(0));

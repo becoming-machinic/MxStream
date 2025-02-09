@@ -18,6 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.test.utils.CountingSupplier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

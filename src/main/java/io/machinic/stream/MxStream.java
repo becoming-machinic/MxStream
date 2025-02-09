@@ -16,14 +16,14 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.source.PipelineSource;
+import io.machinic.stream.source.IteratorSource;
+import io.machinic.stream.source.StreamSource;
 
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -43,10 +43,6 @@ public interface MxStream<T> {
 	boolean isParallel();
 	
 	int getParallelism();
-	
-	MxStream<T> parallelStream(int parallelism);
-	
-	MxStream<T> parallelStream(int parallelism, ExecutorService executorService);
 	
 	MxStream<T> exceptionHandler(MxStreamExceptionHandler exceptionHandler);
 	
@@ -118,7 +114,7 @@ public interface MxStream<T> {
 	 * @param bufferSize
 	 * 		size of the buffer that parallel threads read from
 	 */
-	MxStream<T> fanOut(int bufferSize);
+	MxStream<T> fanOut(int parallelism, int bufferSize);
 	
 	/**
 	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing.
@@ -128,7 +124,7 @@ public interface MxStream<T> {
 	 * @param executorService
 	 * 		executorService that parallel tasks are submitted to
 	 */
-	MxStream<T> fanOut(int bufferSize, ExecutorService executorService);
+	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);
 	
 	void forEach(Consumer<? super T> action);
 	
@@ -143,23 +139,27 @@ public interface MxStream<T> {
 	Stream<T> toStream();
 	
 	static <T> MxStream<T> of(Stream<T> stream) {
-		return new PipelineSource<>(stream);
+		return new StreamSource<>(stream);
+	}
+	
+	static <T> MxStream<T> of(Stream<T> stream, int parallelism, ExecutorService executorService) {
+		return new StreamSource<>(stream, parallelism, executorService);
 	}
 	
 	static <T> MxStream<T> of(Spliterator<T> spliterator, boolean parallel) {
-		return new PipelineSource<>(spliterator, parallel);
+		return new IteratorSource<>(spliterator, parallel);
 	}
 	
 	static <T> MxStream<T> parallel(Spliterator<T> spliterator) {
-		return new PipelineSource<>(spliterator, true);
+		return new IteratorSource<>(spliterator, true);
 	}
 	
 	static <T> io.machinic.stream.MxStream<T> of(Iterator<T> iterator) {
-		return new PipelineSource<>(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
+		return new IteratorSource<>(iterator);
 	}
 	
 	static <T> io.machinic.stream.MxStream<T> of(Iterable<T> iterable) {
-		return new PipelineSource<>(iterable.spliterator(), false);
+		return new IteratorSource<>(iterable.spliterator(), false);
 	}
 	
 	/**
@@ -169,7 +169,7 @@ public interface MxStream<T> {
 	 * 		stream source
 	 */
 	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable) {
-		return new PipelineSource<>(iterable.spliterator(), true);
+		return new IteratorSource<>(iterable.spliterator(), true);
 	}
 	
 	/**
@@ -181,7 +181,7 @@ public interface MxStream<T> {
 	 * 		number of threads that will be used to process stream
 	 */
 	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable, int parallelism) {
-		return new PipelineSource<>(iterable.spliterator(), true, parallelism, null);
+		return new IteratorSource<>(iterable.spliterator(), true, parallelism, null);
 	}
 	
 	/**
@@ -193,6 +193,6 @@ public interface MxStream<T> {
 	 * 		the ExecutorService that stream will use
 	 */
 	static <T> io.machinic.stream.MxStream<T> parallel(Iterable<T> iterable, int parallelism, ExecutorService executorService) {
-		return new PipelineSource<>(iterable.spliterator(), true, parallelism, executorService);
+		return new IteratorSource<>(iterable.spliterator(), true, parallelism, executorService);
 	}
 }

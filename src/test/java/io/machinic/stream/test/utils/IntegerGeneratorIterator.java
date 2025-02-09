@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-package io.machinic.stream.test;
+package io.machinic.stream.test.utils;
 
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
-public class CountingSupplier<T> implements Supplier<T> {
+public class IntegerGeneratorIterator implements Iterator<Integer> {
 	
-	private final T suppliedValue;
-	private final AtomicInteger count = new AtomicInteger(0);
+	private final int size;
+	private final AtomicInteger counter = new AtomicInteger(0);
 	
-	public CountingSupplier(T suppliedValue) {
-		this.suppliedValue = suppliedValue;
+	public IntegerGeneratorIterator(int size) {
+		this.size = size;
 	}
 	
 	@Override
-	public T get() {
-		count.getAndIncrement();
-		return this.suppliedValue;
+	public boolean hasNext() {
+		return counter.get() < size;
 	}
 	
-	public int getCount() {
-		return count.get();
+	@Override
+	public Integer next() {
+		return counter.getAndIncrement();
 	}
 }

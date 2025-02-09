@@ -28,7 +28,6 @@ import io.machinic.stream.spliterator.FanOutSpliterator;
 import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
 import io.machinic.stream.spliterator.MapSpliterator;
-import io.machinic.stream.spliterator.PassThoughSpliterator;
 import io.machinic.stream.spliterator.PeekSpliterator;
 import io.machinic.stream.spliterator.WindowedSortSpliterator;
 import io.machinic.stream.util.Require;
@@ -65,28 +64,16 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 		return getPrevious().getExecutorService();
 	}
 	
+	public boolean isClosed() {
+		return getSource().isClosed();
+	}
+	
 	public boolean isParallel() {
 		return getPrevious().isParallel();
 	}
 	
 	public int getParallelism() {
 		return getPrevious().getParallelism();
-	}
-	
-	@Override
-	public MxStream<OUT> parallelStream(int parallelism) {
-		Require.equalOrGreater(parallelism, 1, "parallelism");
-		return parallelStream(parallelism, this.getExecutorService());
-	}
-	
-	@Override
-	public MxStream<OUT> parallelStream(int parallelism, ExecutorService executorService) {
-		if (!this.isParallel()) {
-			Require.equalOrGreater(parallelism, 1, "parallelism");
-			Objects.requireNonNull(executorService);
-			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new PassThoughSpliterator<>(this, this.getSpliterator()));
-		}
-		return this;
 	}
 	
 	@Override
@@ -217,20 +204,22 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public MxStream<OUT> fanOut(int bufferSize) {
+	public MxStream<OUT> fanOut(int parallelism, int bufferSize) {
 		Require.equalOrGreater(bufferSize, 1, "bufferSize");
-		return this.fanOut(bufferSize, this.getExecutorService());
+		return this.fanOut(parallelism, bufferSize, this.getExecutorService());
 	}
 	
 	@Override
-	public MxStream<OUT> fanOut(int bufferSize, ExecutorService executorService) {
+	public MxStream<OUT> fanOut(int parallelism, int bufferSize, ExecutorService executorService) {
 		if (!this.isParallel()) {
 			Require.equalOrGreater(bufferSize, 1, "bufferSize");
 			Objects.requireNonNull(executorService);
-			return new PipelineParallel<>(this.getSource(), this, this.getParallelism(), executorService, new FanOutSpliterator<>(this, this.getSpliterator(), bufferSize));
+			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new FanOutSpliterator<>(this, this.getSpliterator(), bufferSize));
 		}
 		return this;
 	}
+	
+	
 	
 	@Override
 	public void forEach(Consumer<? super OUT> action) {
@@ -287,6 +276,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 				try {
 					future.get();
 				} catch (InterruptedException | ExecutionException e) {
+					// TODO we likely need to cancel the stream here
 					throw new RuntimeException(e);
 				}
 			}

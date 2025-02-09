@@ -24,27 +24,24 @@ import io.machinic.stream.spliterator.CancellableSpliterator;
 import java.util.Spliterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PipelineSource<IN> extends BasePipeline<IN, IN> implements Source<IN> {
+public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements Source<IN> {
 	
 	private final boolean parallel;
 	private final int parallelism;
 	private final ExecutorService executorService;
 	private final CancellableSpliterator<IN> spliterator;
+	protected final AtomicBoolean closedReference = new AtomicBoolean(false);
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
-	
-	public PipelineSource(Stream<IN> stream) {
-		this(stream.spliterator(), stream.isParallel());
-	}
 	
 	public PipelineSource(Spliterator<IN> spliterator, boolean parallel) {
 		this(spliterator, parallel, ForkJoinPool.getCommonPoolParallelism(), ForkJoinPool.commonPool());
 	}
 	
 	public PipelineSource(Spliterator<IN> spliterator, boolean parallel, int parallelism, ExecutorService executorService) {
-		this.parallel = parallel;
 		this.spliterator = new CancellableSpliterator<>(this, spliterator);
+		this.parallel = parallel;
 		this.parallelism = parallelism;
 		this.executorService = (executorService != null ? executorService : ForkJoinPool.commonPool());
 	}
@@ -64,6 +61,11 @@ public class PipelineSource<IN> extends BasePipeline<IN, IN> implements Source<I
 		return this.spliterator;
 	}
 	
+	@Override
+	public boolean isClosed() {
+		return closedReference.get();
+	}
+	
 	public ExecutorService getExecutorService() {
 		return this.executorService;
 	}
@@ -80,10 +82,6 @@ public class PipelineSource<IN> extends BasePipeline<IN, IN> implements Source<I
 	public PipelineSource<IN> exceptionHandler(MxStreamExceptionHandler exceptionHandler) {
 		this.exceptionHandler = exceptionHandler;
 		return this;
-	}
-	
-	public void close() throws Exception {
-		this.spliterator.cancel();
 	}
 	
 	public MxStreamExceptionHandler getExceptionHandler() {
