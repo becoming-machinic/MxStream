@@ -68,8 +68,6 @@ public class FanOutSpliterator<T> extends AbstractSpliterator<T, T> {
 		return this.previousSpliterator.characteristics() | Spliterator.CONCURRENT;
 	}
 	
-	
-	
 	private class Wrapper {
 		private final T value;
 		public Wrapper(T value) {

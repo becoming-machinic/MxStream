@@ -39,6 +39,7 @@ public class CollectorSink<T, A, R> extends AbstractSink<T> {
 	
 	@Override
 	public void forEachRemaining() {
+		//noinspection StatementWithEmptyBody
 		do {
 			// NOOP
 		} while (previousSpliterator.tryAdvance(

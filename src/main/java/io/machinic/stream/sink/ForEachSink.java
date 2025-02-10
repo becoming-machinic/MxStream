@@ -40,6 +40,7 @@ public class ForEachSink<T> extends AbstractSink<T> {
 	
 	@Override
 	public void forEachRemaining() {
+		//noinspection StatementWithEmptyBody
 		do {
 			// NOOP
 		} while (previousSpliterator.tryAdvance(value ->

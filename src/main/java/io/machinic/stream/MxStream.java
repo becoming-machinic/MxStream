@@ -109,19 +109,20 @@ public interface MxStream<T> {
 	
 	/**
 	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing.
+	 * Parallel streams will process items in a non-deterministic order.
 	 *
-	 * @param bufferSize
-	 * 		size of the buffer that parallel threads read from
+	 * @param parallelism the number of additional threads that will be used to process stream.
+	 * @param bufferSize size of the buffer between main thread and additional threads
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize);
 	
 	/**
 	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing.
+	 * Parallel streams will process items in a non-deterministic order.
 	 *
-	 * @param bufferSize
-	 * 		size of the buffer that parallel threads read from
-	 * @param executorService
-	 * 		executorService that parallel tasks are submitted to
+	 * @param parallelism the number of additional threads that will be used to process stream.
+	 * @param bufferSize size of the buffer between main thread and additional threads
+	 * @param executorService	executorService that parallel tasks are submitted to
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);
 	

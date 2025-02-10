@@ -35,7 +35,7 @@ import java.util.function.Supplier;
 
 public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	
-	private static Logger logger = LoggerFactory.getLogger(MxStream.class);
+	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
 	
 	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
 	private final Function<? super IN, ? extends OUT> mapper;
