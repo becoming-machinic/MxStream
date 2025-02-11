@@ -72,8 +72,6 @@ public class TapBuilder<T> {
 	
 	/**
 	 * Block until builder has been attached to MxStream and then return tap stream.
-	 * @return MxStream<T>
-	 * @throws InterruptedException
 	 */
 	public MxStream<T> awaitBuild() throws InterruptedException {
 		this.latch.await();
