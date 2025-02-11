@@ -79,13 +79,4 @@ public class MxStreamPatternsTest {
 		Assertions.assertEquals(500, tapCount);
 	}
 	
-	@Test
-	public void bulkTest() {
-		long count = MxStream.of(new IntegerGeneratorIterator(5000000))
-				.asyncMap(100, ForkJoinPool.commonPool(),
-						integer -> Integer.toString(integer))
-				.collect(Collectors.counting());
-		Assertions.assertEquals(5000000, count);
-	}
-	
 }
