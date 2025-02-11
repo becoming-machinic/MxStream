@@ -25,7 +25,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class FlatMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
+public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
 	private final Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier;
 	private final Function<? super IN, ? extends Stream<? extends OUT>> mapper;
@@ -50,7 +50,7 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	}
 	
 	@Override
-	public AbstractSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
+	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
 		return new FlatMapSpliterator<>(this.stream, spliterator, supplier);
 	}
 	

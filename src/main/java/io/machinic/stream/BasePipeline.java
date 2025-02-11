@@ -19,11 +19,11 @@ package io.machinic.stream;
 import io.machinic.stream.sink.AbstractSink;
 import io.machinic.stream.sink.CollectorSink;
 import io.machinic.stream.sink.ForEachSink;
-import io.machinic.stream.source.PipelineSource;
-import io.machinic.stream.spliterator.AbstractSpliterator;
+import io.machinic.stream.spliterator.AbstractChainedSpliterator;
 import io.machinic.stream.spliterator.AsyncMapSpliterator;
 import io.machinic.stream.spliterator.BatchSpliterator;
 import io.machinic.stream.spliterator.BatchTimeoutSpliterator;
+import io.machinic.stream.spliterator.BlockingQueueWriterSpliterator;
 import io.machinic.stream.spliterator.FanOutSpliterator;
 import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
@@ -31,6 +31,8 @@ import io.machinic.stream.spliterator.MapSpliterator;
 import io.machinic.stream.spliterator.PeekSpliterator;
 import io.machinic.stream.spliterator.WindowedSortSpliterator;
 import io.machinic.stream.util.Require;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -53,19 +55,12 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
-	
-	protected abstract PipelineSource<?> getSource();
+	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
 	
 	protected abstract BasePipeline<?, IN> getPrevious();
 	
-	protected abstract AbstractSpliterator<IN, OUT> getSpliterator();
-	
 	protected ExecutorService getExecutorService() {
 		return getPrevious().getExecutorService();
-	}
-	
-	public boolean isClosed() {
-		return getSource().isClosed();
 	}
 	
 	public boolean isParallel() {
@@ -74,6 +69,22 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	public int getParallelism() {
 		return getPrevious().getParallelism();
+	}
+	
+	public boolean isClosed() {
+		return getSource().isClosed();
+	}
+	
+	protected abstract PipelineSource<?> getSource();
+	
+	public int getCharacteristics() {
+		return getSpliterator().characteristics();
+	}
+	
+	protected abstract AbstractChainedSpliterator<IN, OUT> getSpliterator();
+	
+	public StreamException getException() {
+		return getSource().getException();
 	}
 	
 	@Override
@@ -219,7 +230,12 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 		return this;
 	}
 	
-	
+	@Override
+	public MxStream<OUT> tap(TapBuilder<OUT> tapBuilder) {
+		Objects.requireNonNull(tapBuilder);
+		tapBuilder.source(this);
+		return new Pipeline<>(this.getSource(), this, new BlockingQueueWriterSpliterator<>(this, this.getSpliterator(), tapBuilder.queue));
+	}
 	
 	@Override
 	public void forEach(Consumer<? super OUT> action) {
@@ -257,36 +273,50 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	private void processSink(AbstractSink<OUT> sink) {
-		if (isParallel()) {
-			int parallelism = this.getParallelism();
-			ExecutorService executorService = this.getExecutorService();
-			
-			List<Runnable> tasks = new ArrayList<>();
-			for (int i = 0; i < parallelism; i++) {
-				AbstractSink<OUT> split = sink.trySplit();
-				if (split != null) {
-					tasks.add(split::forEachRemaining);
-				}
-			}
-			
-			List<? extends Future<?>> futures = tasks.stream().map(executorService::submit).toList();
-			sink.forEachRemaining();
-			
-			for (Future<?> future : futures) {
-				try {
-					future.get();
-				} catch (InterruptedException | ExecutionException e) {
-					// TODO we likely need to cancel the stream here
-					throw new RuntimeException(e);
-				}
-			}
-		} else {
-			sink.forEachRemaining();
-		}
 		try {
-			this.close();
+			if (isParallel()) {
+				int parallelism = this.getParallelism();
+				ExecutorService executorService = this.getExecutorService();
+				
+				List<Runnable> tasks = new ArrayList<>();
+				for (int i = 0; i < parallelism; i++) {
+					AbstractSink<OUT> split = sink.trySplit();
+					if (split != null) {
+						tasks.add(split::forEachRemaining);
+					}
+				}
+				
+				List<? extends Future<?>> futures = tasks.stream().map(executorService::submit).toList();
+				sink.forEachRemaining();
+				
+				for (Future<?> future : futures) {
+					try {
+						future.get();
+					} catch (InterruptedException | ExecutionException e) {
+						// TODO we likely need to cancel the stream here
+						throw new RuntimeException(e);
+					}
+				}
+			} else {
+				sink.forEachRemaining();
+			}
+			// If a parent stream threw an exception throw it here
+			if(this.getSource().getException() != null) {
+				throw this.getSource().getException();
+			}
+		} catch (StreamException e) {
+			this.getSource().setStream(e);
+			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			StreamException streamException = new StreamException(String.format("An error occurred while processing a stream: %s", e.getMessage()), e);
+			this.getSource().setStream(streamException);
+			throw streamException;
+		} finally {
+			try {
+				this.close();
+			} catch (Exception e) {
+				logger.warn("An error occurred while closing the stream", e);
+			}
 		}
 	}
 	

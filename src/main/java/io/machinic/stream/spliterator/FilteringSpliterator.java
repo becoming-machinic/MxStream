@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class FilteringSpliterator<T> extends AbstractSpliterator<T, T> {
+public class FilteringSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private final Supplier<Predicate<? super T>> supplier;
 	private final Predicate<? super T> predicate;

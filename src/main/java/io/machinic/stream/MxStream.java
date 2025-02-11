@@ -16,9 +16,6 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.source.IteratorSource;
-import io.machinic.stream.source.StreamSource;
-
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +39,12 @@ public interface MxStream<T> {
 	boolean isParallel();
 	
 	int getParallelism();
+	
+	boolean isClosed();
+	
+	int getCharacteristics();
+	
+	StreamException getException();
 	
 	MxStream<T> exceptionHandler(MxStreamExceptionHandler exceptionHandler);
 	
@@ -108,23 +111,28 @@ public interface MxStream<T> {
 	MxStream<T> sorted(int windowSize, Supplier<Comparator<? super T>> supplier);
 	
 	/**
-	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing.
-	 * Parallel streams will process items in a non-deterministic order.
+	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing. Parallel streams will process items in a non-deterministic order.
 	 *
-	 * @param parallelism the number of additional threads that will be used to process stream.
-	 * @param bufferSize size of the buffer between main thread and additional threads
+	 * @param parallelism
+	 * 		the number of additional threads that will be used to process stream.
+	 * @param bufferSize
+	 * 		size of the buffer between main thread and additional threads
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize);
 	
 	/**
-	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing.
-	 * Parallel streams will process items in a non-deterministic order.
+	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing. Parallel streams will process items in a non-deterministic order.
 	 *
-	 * @param parallelism the number of additional threads that will be used to process stream.
-	 * @param bufferSize size of the buffer between main thread and additional threads
-	 * @param executorService	executorService that parallel tasks are submitted to
+	 * @param parallelism
+	 * 		the number of additional threads that will be used to process stream.
+	 * @param bufferSize
+	 * 		size of the buffer between main thread and additional threads
+	 * @param executorService
+	 * 		executorService that parallel tasks are submitted to
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);
+	
+	MxStream<T> tap(TapBuilder<T> tapBuilder);
 	
 	void forEach(Consumer<? super T> action);
 	
@@ -139,18 +147,19 @@ public interface MxStream<T> {
 	Stream<T> toStream();
 	
 	static <T> MxStream<T> of(Stream<T> stream) {
-		return new StreamSource<>(stream);
+		return new PipelineSource.StreamSource<>(stream);
 	}
 	
 	static <T> MxStream<T> of(Stream<T> stream, int parallelism, ExecutorService executorService) {
-		return new StreamSource<>(stream, parallelism, executorService);
+		return new PipelineSource.StreamSource<>(stream, parallelism, executorService);
 	}
 	
 	static <T> io.machinic.stream.MxStream<T> of(Iterator<T> iterator) {
-		return new IteratorSource<>(iterator);
+		return new PipelineSource.IteratorSource<>(iterator);
 	}
 	
 	static <T> io.machinic.stream.MxStream<T> of(Iterable<T> iterable) {
-		return new IteratorSource<>(iterable.spliterator(), false);
+		return new PipelineSource.IteratorSource<>(iterable.spliterator(), false);
 	}
+	
 }

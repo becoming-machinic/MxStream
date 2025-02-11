@@ -17,32 +17,29 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator.QueueWrapper;
 
 import java.util.Spliterator;
-import java.util.function.Consumer;
+import java.util.concurrent.BlockingQueue;
 
-public class PassThoughSpliterator<T> extends AbstractChainedSpliterator<T, T> {
+public class BlockingQueueWriterSpliterator<T> extends PeekSpliterator<T> {
 	
-	public PassThoughSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator) {
-		super(stream, previousSpliterator);
-	}
+	private final BlockingQueue<QueueWrapper<T>> queue;
 	
-	@Override
-	public boolean tryAdvance(Consumer<? super T> action) {
-		return previousSpliterator.tryAdvance(action);
+	public BlockingQueueWriterSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, BlockingQueue<QueueWrapper<T>> queue) {
+		super(stream, previousSpliterator, () ->
+				value -> {
+					try {
+						queue.put(new QueueWrapper<T>(((T) value)));
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				});
+		this.queue = queue;
 	}
 	
 	@Override
 	public Spliterator<T> split(Spliterator<T> spliterator) {
-		return new PassThoughSpliterator<>(this.stream, spliterator);
+		return new BlockingQueueWriterSpliterator<>(this.stream, spliterator, queue);
 	}
-	
-	@Override
-	public int characteristics() {
-		if (this.isParallel()) {
-			return this.previousSpliterator.characteristics() | (Spliterator.CONCURRENT);
-		}
-		return this.previousSpliterator.characteristics();
-	}
-	
 }

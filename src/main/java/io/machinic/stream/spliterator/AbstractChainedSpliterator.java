@@ -19,22 +19,43 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 
 import java.util.Spliterator;
-import java.util.function.Consumer;
 
-public class PassThoughSpliterator<T> extends AbstractChainedSpliterator<T, T> {
+public abstract class AbstractChainedSpliterator<IN, OUT> implements Spliterator<OUT> {
 	
-	public PassThoughSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator) {
-		super(stream, previousSpliterator);
+	protected final MxStream<IN> stream;
+	protected final Spliterator<IN> previousSpliterator;
+
+	
+	public AbstractChainedSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator) {
+		this.stream = stream;
+		this.previousSpliterator = previousSpliterator;
+
+	}
+	
+	protected MxStream<IN> getStream() {
+		return stream;
+	}
+	
+	protected boolean isParallel() {
+		return this.stream.isParallel();
+	}
+	
+	protected abstract Spliterator<OUT> split(Spliterator<IN> spliterator);
+	
+	@Override
+	public Spliterator<OUT> trySplit() {
+		if (this.isParallel()) {
+			Spliterator<IN> spliterator = this.previousSpliterator.trySplit();
+			if (spliterator != null) {
+				return split(spliterator);
+			}
+		}
+		return null;
 	}
 	
 	@Override
-	public boolean tryAdvance(Consumer<? super T> action) {
-		return previousSpliterator.tryAdvance(action);
-	}
-	
-	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
-		return new PassThoughSpliterator<>(this.stream, spliterator);
+	public long estimateSize() {
+		return Long.MAX_VALUE;
 	}
 	
 	@Override
@@ -44,5 +65,4 @@ public class PassThoughSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		}
 		return this.previousSpliterator.characteristics();
 	}
-	
 }

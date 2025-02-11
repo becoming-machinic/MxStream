@@ -23,7 +23,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
-public class FanOutSpliterator<T> extends AbstractSpliterator<T, T> {
+public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private final BlockingQueue<Wrapper> queue;
 	private volatile boolean done = false;

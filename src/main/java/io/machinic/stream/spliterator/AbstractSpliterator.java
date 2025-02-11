@@ -23,13 +23,13 @@ import java.util.Spliterator;
 public abstract class AbstractSpliterator<IN, OUT> implements Spliterator<OUT> {
 	
 	protected final MxStream<IN> stream;
-	protected final Spliterator<IN> previousSpliterator;
-
+	protected final int characteristics;
+	public final boolean parallel;
 	
-	public AbstractSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator) {
+	public AbstractSpliterator(MxStream<IN> stream, boolean parallel) {
 		this.stream = stream;
-		this.previousSpliterator = previousSpliterator;
-
+		this.characteristics = stream.getCharacteristics();
+		this.parallel = parallel;
 	}
 	
 	protected MxStream<IN> getStream() {
@@ -37,18 +37,15 @@ public abstract class AbstractSpliterator<IN, OUT> implements Spliterator<OUT> {
 	}
 	
 	protected boolean isParallel() {
-		return this.stream.isParallel();
+		return this.parallel;
 	}
 	
-	protected abstract Spliterator<OUT> split(Spliterator<IN> spliterator);
+	protected abstract Spliterator<OUT> split();
 	
 	@Override
 	public Spliterator<OUT> trySplit() {
 		if (this.isParallel()) {
-			Spliterator<IN> spliterator = this.previousSpliterator.trySplit();
-			if (spliterator != null) {
-				return split(spliterator);
-			}
+			return this.split();
 		}
 		return null;
 	}
@@ -60,6 +57,9 @@ public abstract class AbstractSpliterator<IN, OUT> implements Spliterator<OUT> {
 	
 	@Override
 	public int characteristics() {
-		return this.previousSpliterator.characteristics();
+		if (this.isParallel()) {
+			return this.characteristics | (Spliterator.CONCURRENT);
+		}
+		return this.characteristics;
 	}
 }

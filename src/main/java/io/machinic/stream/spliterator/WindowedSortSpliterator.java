@@ -25,7 +25,7 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class WindowedSortSpliterator<T> extends AbstractSpliterator<T, T> {
+public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private final int windowSize;
 	private final Supplier<Comparator<? super T>> supplier;

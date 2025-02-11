@@ -24,7 +24,7 @@ import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class BatchSpliterator<T> extends AbstractSpliterator<T, List<T>> {
+public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> {
 	
 	private final int batchSize;
 	private final AtomicReference<List<T>> batchReference;

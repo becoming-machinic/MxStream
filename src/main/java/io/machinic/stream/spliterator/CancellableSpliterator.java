@@ -22,7 +22,7 @@ import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-public class CancellableSpliterator<T> extends AbstractSpliterator<T, T> {
+public class CancellableSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private final AtomicBoolean cancelled;
 	

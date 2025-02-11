@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.machinic.stream.source;
+package io.machinic.stream;
 
 public interface Source<S> extends AutoCloseable {
 

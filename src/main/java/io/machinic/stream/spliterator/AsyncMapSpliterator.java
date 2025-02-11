@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
+public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
 	
@@ -121,7 +121,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	}
 	
 	@Override
-	public AbstractSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
+	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
 		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, supplier);
 	}
 	

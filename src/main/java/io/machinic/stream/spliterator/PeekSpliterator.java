@@ -23,7 +23,7 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class PeekSpliterator<T> extends AbstractSpliterator<T, T> {
+public class PeekSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private final Supplier<Consumer<? super T>> supplier;
 	private final Consumer<? super T> consumer;

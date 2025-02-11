@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class BatchTimeoutSpliterator<T> extends AbstractSpliterator<T, List<T>> {
+public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> {
 	
 	private final int batchSize;
 	private final AtomicReference<Batch> batchReference;

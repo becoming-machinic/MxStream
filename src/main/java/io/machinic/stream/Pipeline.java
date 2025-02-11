@@ -16,16 +16,15 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.source.PipelineSource;
-import io.machinic.stream.spliterator.AbstractSpliterator;
+import io.machinic.stream.spliterator.AbstractChainedSpliterator;
 
 public class Pipeline<IN, OUT> extends BasePipeline<IN, OUT> {
 	
 	private final PipelineSource<?> source;
 	private final BasePipeline<?, IN> previous;
-	private final AbstractSpliterator<IN, OUT> spliterator;
+	private final AbstractChainedSpliterator<IN, OUT> spliterator;
 	
-	public Pipeline(PipelineSource<?> source, BasePipeline<?, IN> previous, AbstractSpliterator<IN, OUT> spliterator) {
+	public Pipeline(PipelineSource<?> source, BasePipeline<?, IN> previous, AbstractChainedSpliterator<IN, OUT> spliterator) {
 		this.source = source;
 		this.previous = previous;
 		this.spliterator = spliterator;
@@ -42,7 +41,7 @@ public class Pipeline<IN, OUT> extends BasePipeline<IN, OUT> {
 	}
 	
 	@Override
-	protected AbstractSpliterator<IN, OUT> getSpliterator() {
+	protected AbstractChainedSpliterator<IN, OUT> getSpliterator() {
 		return spliterator;
 	}
 	

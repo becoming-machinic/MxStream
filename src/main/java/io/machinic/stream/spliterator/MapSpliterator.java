@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class MapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
+public class MapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
 	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
 	private final Function<? super IN, ? extends OUT> mapper;
@@ -50,7 +50,7 @@ public class MapSpliterator<IN, OUT> extends AbstractSpliterator<IN, OUT> {
 	}
 	
 	@Override
-	public AbstractSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
+	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
 		return new MapSpliterator<>(this.stream, spliterator, supplier);
 	}
 	

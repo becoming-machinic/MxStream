@@ -16,8 +16,7 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.source.PipelineSource;
-import io.machinic.stream.spliterator.AbstractSpliterator;
+import io.machinic.stream.spliterator.AbstractChainedSpliterator;
 
 import java.util.concurrent.ExecutorService;
 
@@ -26,7 +25,7 @@ public class PipelineParallel<IN, OUT> extends Pipeline<IN, OUT> {
 	private final int parallelism;
 	private final ExecutorService executorService;
 	
-	public PipelineParallel(PipelineSource<?> source, BasePipeline<?, IN> previous, int parallelism, ExecutorService executorService, AbstractSpliterator<IN, OUT> spliterator) {
+	public PipelineParallel(PipelineSource<?> source, BasePipeline<?, IN> previous, int parallelism, ExecutorService executorService, AbstractChainedSpliterator<IN, OUT> spliterator) {
 		super(source, previous, spliterator);
 		this.parallelism = parallelism;
 		this.executorService = executorService;

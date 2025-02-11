@@ -17,7 +17,9 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.TapBuilder;
 import io.machinic.stream.test.utils.IntegerGeneratorIterator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -27,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Execution(ExecutionMode.SAME_THREAD)
@@ -56,20 +59,33 @@ public class MxStreamPatternsTest {
 	}
 	
 	@Test
-	public void parallelAsyncMapTest() {
-		String joined = MxStream.of(new IntegerGeneratorIterator(500))
+	public void streamTapTest() throws InterruptedException {
+		TapBuilder<String> tapBuilder = new TapBuilder<>(5);
+		
+		AtomicLong counter = new AtomicLong(0);
+		Thread streamThread = new Thread(() -> {
+			MxStream.of(new IntegerGeneratorIterator(500))
+					.map(integer -> Integer.toString(integer))
+					.tap(tapBuilder)
+					.forEach(value -> counter.incrementAndGet());
+		});
+		streamThread.setName("stream-thread");
+		streamThread.start();
+		
+		long tapCount = tapBuilder.awaitBuild()
+				.collect(Collectors.counting());
+		
+		Assertions.assertEquals(500, counter.get());
+		Assertions.assertEquals(500, tapCount);
+	}
+	
+	@Test
+	public void bulkTest() {
+		long count = MxStream.of(new IntegerGeneratorIterator(5000000))
 				.asyncMap(100, ForkJoinPool.commonPool(),
-						integer -> {
-							try {
-								// slow task
-								Thread.sleep(10);
-							} catch (InterruptedException e) {
-								throw new RuntimeException(e);
-							}
-							return Integer.toString(integer);
-						})
-				.collect(Collectors.joining(","));
-		System.out.println(joined);
+						integer -> Integer.toString(integer))
+				.collect(Collectors.counting());
+		Assertions.assertEquals(5000000, count);
 	}
 	
 }
