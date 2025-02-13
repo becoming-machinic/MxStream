@@ -66,6 +66,16 @@ public class MxStreamSinkTest {
 	}
 	
 	@Test
+	public void countTest() {
+		Assertions.assertEquals(INTEGER_SET_A.size(), MxStream.of(INTEGER_LIST_A.stream()).count());
+	}
+	
+	@Test
+	public void countFanOutTest() {
+		Assertions.assertEquals(INTEGER_SET_A.size(), MxStream.of(INTEGER_LIST_A).fanOut(5, 1).count());
+	}
+	
+	@Test
 	public void toStreamTest() {
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A).toStream().toList());
 	}

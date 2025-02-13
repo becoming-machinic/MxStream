@@ -268,6 +268,11 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
+	public long count() {
+		return collect(Collectors.counting());
+	}
+	
+	@Override
 	public Stream<OUT> toStream() {
 		return StreamSupport.stream(this.getSpliterator(), this.isParallel());
 	}
@@ -301,7 +306,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 				sink.forEachRemaining();
 			}
 			// If a parent stream threw an exception throw it here
-			if(this.getSource().getException() != null) {
+			if (this.getSource().getException() != null) {
 				throw this.getSource().getException();
 			}
 		} catch (StreamException e) {

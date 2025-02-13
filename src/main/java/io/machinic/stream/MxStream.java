@@ -144,6 +144,8 @@ public interface MxStream<T> {
 	
 	Set<T> toSet();
 	
+	long count();
+	
 	Stream<T> toStream();
 	
 	static <T> MxStream<T> of(Stream<T> stream) {
