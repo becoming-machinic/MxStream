@@ -69,10 +69,10 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		}
 	}
 	
-	private Future<OUT> nonBlockingDequeue() {
+	private Future<OUT> peekNext() {
 		Future<OUT> future = queue.peek();
 		if (future != null && future.isDone()) {
-			return queue.poll();
+			return future;
 		}
 		return null;
 	}
@@ -100,8 +100,8 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	public boolean tryAdvance(Consumer<? super OUT> action) {
 		
 		// process completed futures
-		Future<OUT> future = nonBlockingDequeue();
-		if (future == null && this.getQueueSize() >= parallelism) {
+		Future<OUT> future = peekNext();
+		if (future != null || this.getQueueSize() >= parallelism) {
 			future = dequeue();
 		}
 		
