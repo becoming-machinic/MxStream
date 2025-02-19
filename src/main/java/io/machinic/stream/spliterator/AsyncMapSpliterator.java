@@ -16,6 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
+import io.machinic.stream.MxMetrics;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
@@ -41,14 +42,16 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	private final Function<? super IN, ? extends OUT> mapper;
 	private final int parallelism;
 	private final ExecutorService executorService;
+	private final MxMetrics metrics;
 	private final Queue<Future<OUT>> queue;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+	public AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, MxMetrics metrics, Supplier<Function<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
 		this.parallelism = parallelism;
 		this.executorService = executorService;
+		this.metrics = metrics;
 		this.queue = new ArrayDeque<>(parallelism + 2);
 	}
 	
@@ -57,7 +60,13 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	}
 	
 	private void enqueue(AsyncTask asyncTask) {
-		queue.add(this.executorService.submit(asyncTask));
+		try {
+			queue.add(this.executorService.submit(asyncTask));
+		} finally {
+			if (metrics != null) {
+				metrics.onAdd();
+			}
+		}
 	}
 	
 	private Future<OUT> nonBlockingDequeue() {
@@ -69,7 +78,13 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	}
 	
 	private Future<OUT> dequeue() {
-		return queue.poll();
+		try {
+			return queue.poll();
+		} finally {
+			if (metrics != null) {
+				metrics.onRemove();
+			}
+		}
 	}
 	
 	protected int getQueueSize() {
@@ -122,7 +137,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
-		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, supplier);
+		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, metrics, supplier);
 	}
 	
 	public class AsyncTask implements Callable<OUT> {

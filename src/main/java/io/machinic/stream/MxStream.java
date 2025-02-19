@@ -88,7 +88,11 @@ public interface MxStream<T> {
 	 */
 	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Function<? super T, ? extends R> mapper);
 	
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxMetrics metrics, Function<? super T, ? extends R> mapper);
+	
 	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<Function<? super T, ? extends R>> supplier);
+	
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxMetrics metrics, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	MxStream<List<T>> batch(int batchSize);
 	

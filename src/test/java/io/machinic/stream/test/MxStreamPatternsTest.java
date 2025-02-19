@@ -28,7 +28,10 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -56,6 +59,37 @@ public class MxStreamPatternsTest {
 						})
 				.collect(Collectors.joining(","));
 		System.out.println(joined);
+	}
+	
+	@Test
+	public void chainedAsyncMapTest() {
+		long count = MxStream.of(new IntegerGeneratorIterator(500))
+				.asyncMap(100, ForkJoinPool.commonPool(),
+						integer -> {
+							try {
+								// slow task
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							return integer;
+						})
+				.asyncMap(50, ForkJoinPool.commonPool(),
+						integer -> {
+							try {
+								// slow task
+								Thread.sleep(ThreadLocalRandom.current().nextInt(10));
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							return integer;
+						})
+				.batch(100, 20, TimeUnit.MILLISECONDS)
+				.asyncMap(5, ForkJoinPool.commonPool(),
+						batch -> batch)
+				.flatMap(Collection::stream)
+				.count();
+		Assertions.assertEquals(500, count);
 	}
 	
 	@Test

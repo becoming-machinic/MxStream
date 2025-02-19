@@ -77,7 +77,7 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 		}
 		
 		public boolean isExpired() {
-			return endTime <= System.currentTimeMillis();
+			return endTime <= System.currentTimeMillis() && !batch.isEmpty();
 		}
 		
 		public void add(T element) {
