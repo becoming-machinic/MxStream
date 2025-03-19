@@ -54,12 +54,15 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 				.sum();
 	}
 	
+	/**
+	 * Calculates the average task duration
+	 * @return The average task duration in milliseconds
+	 */
 	public double getAverageDuration() {
 		List<Double> sum = asyncMapMetrics.stream()
-				.map(metric -> metric.getCount() / Math.max(Long.valueOf(metric.getTaskDuration()).doubleValue(), 1D))
+				.map(metric -> metric.getTaskDuration() / Math.max(Long.valueOf(metric.getCount()).doubleValue(), 1D))
 				.toList();
 		return sum.stream().reduce(0D, Double::sum) / sum.size();
 	}
 	
-
 }
