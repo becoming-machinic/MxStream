@@ -16,10 +16,12 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxMetrics;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.metrics.AsyncMapMetric;
+import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.util.Opp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,49 +44,40 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	private final Function<? super IN, ? extends OUT> mapper;
 	private final int parallelism;
 	private final ExecutorService executorService;
-	private final MxMetrics metrics;
-	private final Queue<Future<OUT>> queue;
+	private final AsyncMapMetricSupplier metricSupplier;
+	private final AsyncMapMetric metric;
+	private final Queue<Future<TaskResult>> queue;
+	private boolean started;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, MxMetrics metrics, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+	public AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
 		this.parallelism = parallelism;
 		this.executorService = executorService;
-		this.metrics = metrics;
+		this.metricSupplier = metricSupplier;
+		this.metric = Opp.applyOrNull(metricSupplier, AsyncMapMetricSupplier::get);
 		this.queue = new ArrayDeque<>(parallelism + 2);
 	}
 	
-	private AsyncTask createTask(IN input) {
-		return new AsyncTask(input);
+	private TaskCallable createTask(IN input) {
+		return new TaskCallable(input);
 	}
 	
-	private void enqueue(AsyncTask asyncTask) {
-		try {
-			queue.add(this.executorService.submit(asyncTask));
-		} finally {
-			if (metrics != null) {
-				metrics.onAdd();
-			}
-		}
+	private void enqueue(TaskCallable taskCallable) {
+		queue.add(this.executorService.submit(taskCallable));
 	}
 	
-	private Future<OUT> peekNext() {
-		Future<OUT> future = queue.peek();
+	private Future<TaskResult> peekNext() {
+		Future<TaskResult> future = queue.peek();
 		if (future != null && future.isDone()) {
 			return future;
 		}
 		return null;
 	}
 	
-	private Future<OUT> dequeue() {
-		try {
-			return queue.poll();
-		} finally {
-			if (metrics != null) {
-				metrics.onRemove();
-			}
-		}
+	private Future<TaskResult> dequeue() {
+		return queue.poll();
 	}
 	
 	protected int getQueueSize() {
@@ -98,16 +91,24 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
+		if (!started && this.metric != null) {
+			this.metric.onStart();
+			started = true;
+		}
 		
 		// process completed futures
-		Future<OUT> future = peekNext();
+		Future<TaskResult> future = peekNext();
 		if (future != null || this.getQueueSize() >= parallelism) {
 			future = dequeue();
 		}
 		
 		if (future != null) {
 			try {
-				action.accept(future.get());
+				TaskResult result = future.get();
+				if (metric != null) {
+					metric.onEvent(result.duration);
+				}
+				action.accept(result.output);
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			} catch (ExecutionException e) {
@@ -137,24 +138,43 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
-		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, metrics, supplier);
+		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, metricSupplier, supplier);
 	}
 	
-	public class AsyncTask implements Callable<OUT> {
+	@Override
+	public void close() {
+		if (this.metric != null) {
+			this.metric.onStop();
+		}
+	}
+	
+	private class TaskCallable implements Callable<TaskResult> {
 		private final IN input;
 		
-		private AsyncTask(IN input) {
+		private TaskCallable(IN input) {
 			this.input = input;
 		}
 		
 		@Override
-		public OUT call() throws Exception {
+		public TaskResult call() throws Exception {
+			long startTimestamp = System.currentTimeMillis();
 			try {
-				return mapper.apply(input);
+				return new TaskResult(mapper.apply(input), startTimestamp);
 			} catch (Exception e) {
 				getStream().exceptionHandler().onException(e, input);
 				throw new StreamEventException(input, String.format("Event %s failed. Caused by %s", input, e.getMessage()), e);
 			}
+		}
+	}
+	
+	private class TaskResult {
+		
+		private final OUT output;
+		private final long duration;
+		
+		private TaskResult(OUT output, long startTimestamp) {
+			this.output = output;
+			this.duration = System.currentTimeMillis() - startTimestamp;
 		}
 	}
 }

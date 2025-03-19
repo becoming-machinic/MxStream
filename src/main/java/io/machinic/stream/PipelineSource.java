@@ -19,7 +19,9 @@ package io.machinic.stream;
 import io.machinic.stream.spliterator.AbstractChainedSpliterator;
 import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator;
 import io.machinic.stream.spliterator.CancellableSpliterator;
+import io.machinic.stream.util.BufferedReaderIterator;
 
+import java.io.BufferedReader;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -136,6 +138,22 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		public void close() throws Exception {
 			closedReference.getAndSet(true);
 			// Nothing to close
+		}
+	}
+	
+	public static class BufferedReaderStream extends IteratorSource<String> {
+		private final BufferedReader bufferedReader;
+		
+		public BufferedReaderStream(BufferedReader bufferedReader) {
+			super(new BufferedReaderIterator(bufferedReader));
+			this.bufferedReader = bufferedReader;
+		}
+
+		@Override
+		public void close() throws Exception {
+			if(!closedReference.getAndSet(true)) {
+				bufferedReader.close();
+			}
 		}
 	}
 	

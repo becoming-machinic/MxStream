@@ -30,6 +30,7 @@ public class TestData {
 	public static final Set<Integer> INTEGER_SET_A = new HashSet<>(INTEGER_LIST_A);
 	public static final List<String> STRING_LIST_A = INTEGER_LIST_A.stream().map(String::valueOf).collect(Collectors.toList());
 	public static final Set<String> STRING_SET_A = new HashSet<>(STRING_LIST_A);
+	public static final String STRING_A = INTEGER_LIST_A.stream().map(String::valueOf).collect(Collectors.joining("\n"));
 	
 	public static final List<Integer> INTEGER_LIST_B = INTEGER_LIST_A.stream().filter(value -> value % 2 == 0).toList();
 	public static final Set<Integer> INTEGER_SET_B = new HashSet<>(INTEGER_LIST_B);

@@ -18,6 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.TapBuilder;
+import io.machinic.stream.metrics.RateAsyncMapMetricSupplier;
 import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,8 +47,10 @@ public class MxStreamPatternsTest {
 	
 	@Test
 	public void asyncMapTest() {
+		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
 		String joined = MxStream.of(new IntegerGeneratorIterator(500))
 				.asyncMap(100, ForkJoinPool.commonPool(),
+						metricSupplier,
 						integer -> {
 							try {
 								// slow task
@@ -59,12 +62,18 @@ public class MxStreamPatternsTest {
 						})
 				.collect(Collectors.joining(","));
 		System.out.println(joined);
+		System.out.println("Duration: " + metricSupplier.getDuration());
+		System.out.println("Average task duration: " + metricSupplier.getAverageDuration());
+		System.out.println("Total task duration: " + metricSupplier.getTotalDuration());
+		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 	}
 	
 	@Test
 	public void chainedAsyncMapTest() {
+		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
 		long count = MxStream.of(new IntegerGeneratorIterator(500))
 				.asyncMap(100, ForkJoinPool.commonPool(),
+						metricSupplier,
 						integer -> {
 							try {
 								// slow task
@@ -90,6 +99,10 @@ public class MxStreamPatternsTest {
 				.flatMap(Collection::stream)
 				.count();
 		Assertions.assertEquals(500, count);
+		System.out.println("Duration: " + metricSupplier.getDuration());
+		System.out.println("Average task duration: " + metricSupplier.getAverageDuration());
+		System.out.println("Total task duration: " + metricSupplier.getTotalDuration());
+		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 	}
 	
 	@Test

@@ -17,6 +17,8 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamException;
+import io.machinic.stream.util.ErrorTestIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,10 +28,14 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.StringReader;
 import java.util.concurrent.ForkJoinPool;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
+import static io.machinic.stream.test.TestData.STRING_A;
+import static io.machinic.stream.test.TestData.STRING_LIST_A;
 
 @Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamSourceTest {
@@ -76,5 +82,20 @@ public class MxStreamSourceTest {
 	@Test
 	public void sourceIteratorTest() {
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A.iterator()).toList());
+	}
+	
+	@Test
+	public void sourceBufferedReaderTest() {
+		BufferedReader bufferedReader = new BufferedReader(new StringReader(STRING_A));
+		Assertions.assertEquals(STRING_LIST_A, MxStream.of(bufferedReader).toList());
+	}
+	
+	@Test
+	public void iteratorSourceExceptionTest() {
+		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
+			MxStream.of(new ErrorTestIterator<>(INTEGER_LIST_A))
+					.toList();
+		});
+		Assertions.assertEquals("An error occurred while processing a stream: Iterator has thrown an exception", exception.getMessage());
 	}
 }

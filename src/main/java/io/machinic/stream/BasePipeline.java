@@ -16,6 +16,8 @@
 
 package io.machinic.stream;
 
+import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.metrics.StreamMetricSupplier;
 import io.machinic.stream.sink.AbstractSink;
 import io.machinic.stream.sink.CollectorSink;
 import io.machinic.stream.sink.ForEachSink;
@@ -29,6 +31,7 @@ import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
 import io.machinic.stream.spliterator.MapSpliterator;
 import io.machinic.stream.spliterator.PeekSpliterator;
+import io.machinic.stream.spliterator.StreamMetricSpliterator;
 import io.machinic.stream.spliterator.WindowedSortSpliterator;
 import io.machinic.stream.util.Require;
 import org.slf4j.Logger;
@@ -123,6 +126,12 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
+	public MxStream<OUT> metrics(StreamMetricSupplier streamMetricSupplier) {
+		Objects.requireNonNull(streamMetricSupplier);
+		return new Pipeline<>(this.getSource(),this,new StreamMetricSpliterator<>(this,this.getSpliterator(),streamMetricSupplier));
+	}
+	
+	@Override
 	public <R> MxStream<R> map(Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.map(() -> mapper);
@@ -165,9 +174,9 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxMetrics metrics, Function<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
-		return this.asyncMap(parallelism, executorService, metrics, () -> mapper);
+		return this.asyncMap(parallelism, executorService, metricSupplier, () -> mapper);
 	}
 	
 	@Override
@@ -176,11 +185,11 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxMetrics metrics, Supplier<Function<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(executorService);
 		Objects.requireNonNull(supplier);
 		Require.equalOrGreater(parallelism, 1, "parallelism");
-		return new Pipeline<>(this.getSource(), this, new AsyncMapSpliterator<>(this, this.getSpliterator(), parallelism, executorService, metrics, supplier));
+		return new Pipeline<>(this.getSource(), this, new AsyncMapSpliterator<>(this, this.getSpliterator(), parallelism, executorService, metricSupplier, supplier));
 	}
 	
 	@Override
@@ -335,7 +344,8 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	public void close() throws Exception {
-		this.getSource().close();
+		this.getSpliterator().close();
+		this.getPrevious().close();
 	}
 	
 }

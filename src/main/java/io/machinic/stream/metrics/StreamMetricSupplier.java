@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.machinic.stream;
+package io.machinic.stream.metrics;
 
-public interface MxMetrics {
+import java.util.function.Supplier;
 
-	void onAdd();
+public interface StreamMetricSupplier extends Supplier<StreamMetric> {
 	
-	void onRemove();
-
+	public StreamMetric get();
+	
 }

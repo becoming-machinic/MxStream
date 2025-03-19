@@ -20,7 +20,7 @@ import io.machinic.stream.MxStream;
 
 import java.util.Spliterator;
 
-public abstract class AbstractChainedSpliterator<IN, OUT> implements Spliterator<OUT> {
+public abstract class AbstractChainedSpliterator<IN, OUT> implements MxSpliterator<OUT> {
 	
 	protected final MxStream<IN> stream;
 	protected final Spliterator<IN> previousSpliterator;
@@ -65,4 +65,7 @@ public abstract class AbstractChainedSpliterator<IN, OUT> implements Spliterator
 		}
 		return this.previousSpliterator.characteristics();
 	}
+	
+	@Override
+	public void close() {	}
 }
