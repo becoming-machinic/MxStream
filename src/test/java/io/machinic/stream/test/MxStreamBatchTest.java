@@ -26,6 +26,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
@@ -50,6 +51,14 @@ public class MxStreamBatchTest {
 	}
 	
 	@Test
+	public void batchNoItemsTest() {
+		Assertions.assertEquals(List.of(),
+				MxStream.of(List.of())
+						.batch(5)
+						.toList());
+	}
+	
+	@Test
 	public void batchBatchSizeExceptionTest() {
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> MxStream.of(INTEGER_LIST_A)
@@ -57,19 +66,18 @@ public class MxStreamBatchTest {
 						.toList());
 	}
 	
-//	@Test
-//	public void batchParallelTest() {
-//		Assertions.assertEquals(INTEGER_SET_D,
-//				MxStream.of(INTEGER_LIST_A)
-//						.fanOut(1, 2)
-//						.batch(5)
-//						.toSet());
-//	}
-	
 	@Test
 	public void batchWithOutTimeoutTest() {
 		Assertions.assertEquals(INTEGER_LIST_D,
 				MxStream.of(INTEGER_LIST_A)
+						.batch(5, 5, TimeUnit.SECONDS)
+						.toList());
+	}
+	
+	@Test
+	public void batchWithTimeNoItemsTest() {
+		Assertions.assertEquals(List.of(),
+				MxStream.of(List.of())
 						.batch(5, 5, TimeUnit.SECONDS)
 						.toList());
 	}
@@ -81,16 +89,6 @@ public class MxStreamBatchTest {
 						.batch(5, 0, TimeUnit.SECONDS)
 						.toList());
 	}
-	
-//	@Test
-//	public void batchParallelWithOutTimeoutTest() {
-//		Assertions.assertEquals(INTEGER_SET_D,
-//				MxStream.of(INTEGER_LIST_A)
-//						.fanOut(1, 1)
-//						.batch(5, 5, TimeUnit.SECONDS)
-//						.peek(Collections::sort)
-//						.toSet());
-//	}
 	
 	@Test
 	public void batchWithTimeoutTest() {
@@ -106,20 +104,5 @@ public class MxStreamBatchTest {
 						.batch(4, 1, TimeUnit.MILLISECONDS)
 						.toList());
 	}
-	
-//	@Test
-//	public void batchParallelWithTimeoutTest() {
-//		Assertions.assertEquals(INTEGER_SET_E,
-//				MxStream.of(INTEGER_LIST_A)
-//						.fanOut(1, 2)
-//						.peek(value -> {
-//							try {
-//								Thread.sleep(5);
-//							} catch (InterruptedException e) {
-//								throw new RuntimeException(e);
-//							}
-//						})
-//						.batch(4, 1, TimeUnit.MILLISECONDS)
-//						.toSet());
-//	}
+
 }

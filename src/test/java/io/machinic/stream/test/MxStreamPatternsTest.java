@@ -64,7 +64,6 @@ public class MxStreamPatternsTest {
 		System.out.println(joined);
 		System.out.println("Duration: " + metricSupplier.getDuration());
 		System.out.println("Average task duration: " + metricSupplier.getAverageDuration());
-		System.out.println("Total task duration: " + metricSupplier.getTotalDuration());
 		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 	}
 	
@@ -101,7 +100,6 @@ public class MxStreamPatternsTest {
 		Assertions.assertEquals(500, count);
 		System.out.println("Duration: " + metricSupplier.getDuration());
 		System.out.println("Average task duration: " + metricSupplier.getAverageDuration());
-		System.out.println("Total task duration: " + metricSupplier.getTotalDuration());
 		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 	}
 	

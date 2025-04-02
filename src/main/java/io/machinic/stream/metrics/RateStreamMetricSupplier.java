@@ -33,6 +33,10 @@ public class RateStreamMetricSupplier implements StreamMetricSupplier {
 		return streamMetrics.stream().mapToLong(StreamMetric::getCount).sum();
 	}
 	
+	/**
+	 * Get the total duration of the time spent processing all items
+	 * @return the total duration
+	 */
 	public long getDuration() {
 		return streamMetrics.stream().mapToLong(StreamMetric::getDuration).sum();
 	}

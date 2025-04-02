@@ -33,6 +33,10 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getCount).sum();
 	}
 	
+	/**
+	 * Get the total duration of the time spent processing all items
+	 * @return the total duration
+	 */
 	public long getDuration() {
 		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getDuration).sum();
 	}
@@ -48,10 +52,13 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 		return (sum.stream().reduce(0D, Double::sum) / sum.size()) * 1000D;
 	}
 	
+	/**
+	 * Alias for {@code getDuration()}. Use that method instead.
+	 * @return the total duration
+	 */
+	@Deprecated(forRemoval = true)
 	public long getTotalDuration() {
-		return asyncMapMetrics.stream()
-				.mapToLong(AsyncMapMetric::getTaskDuration)
-				.sum();
+		return getDuration();
 	}
 	
 	/**

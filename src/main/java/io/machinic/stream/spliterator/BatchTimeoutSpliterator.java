@@ -37,11 +37,14 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 		this.batchSize = batchSize;
 		this.timeout = timeout;
 		this.unit = unit;
-		batchReference = new AtomicReference<>(new Batch());
+		batchReference = new AtomicReference<>(null);
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super List<T>> action) {
+		// If no batch exists then create one
+		batchReference.compareAndSet(null, new Batch());
+		
 		Batch batch = batchReference.getPlain();
 		if (this.previousSpliterator.tryAdvance(batch::add)) {
 			if (batch.getBatch().size() >= batchSize || batch.isExpired()) {
