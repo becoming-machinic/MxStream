@@ -34,7 +34,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	}
 	
 	/**
-	 * Get the total duration of the time spent processing all items
+	 * Get the clock duration of the time spent processing all item
 	 * @return the total duration
 	 */
 	public long getDuration() {
@@ -53,12 +53,11 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	}
 	
 	/**
-	 * Alias for {@code getDuration()}. Use that method instead.
-	 * @return the total duration
+	 * Get the total duration of the time spent processing all items
+	 * @return total duration
 	 */
-	@Deprecated(forRemoval = true)
 	public long getTotalDuration() {
-		return getDuration();
+		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getTaskDuration).sum();
 	}
 	
 	/**
