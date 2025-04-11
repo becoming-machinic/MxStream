@@ -148,10 +148,10 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 			super(new BufferedReaderIterator(bufferedReader));
 			this.bufferedReader = bufferedReader;
 		}
-
+		
 		@Override
 		public void close() throws Exception {
-			if(!closedReference.getAndSet(true)) {
+			if (!closedReference.getAndSet(true)) {
 				bufferedReader.close();
 			}
 		}

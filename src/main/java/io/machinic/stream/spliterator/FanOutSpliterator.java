@@ -70,9 +70,11 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	private class Wrapper {
 		private final T value;
+		
 		public Wrapper(T value) {
 			this.value = value;
 		}
+		
 		public T getValue() {
 			return value;
 		}

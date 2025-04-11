@@ -128,7 +128,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	@Override
 	public MxStream<OUT> metrics(StreamMetricSupplier streamMetricSupplier) {
 		Objects.requireNonNull(streamMetricSupplier);
-		return new Pipeline<>(this.getSource(),this,new StreamMetricSpliterator<>(this,this.getSpliterator(),streamMetricSupplier));
+		return new Pipeline<>(this.getSource(), this, new StreamMetricSpliterator<>(this, this.getSpliterator(), streamMetricSupplier));
 	}
 	
 	@Override

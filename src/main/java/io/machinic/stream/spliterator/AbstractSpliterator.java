@@ -64,5 +64,6 @@ public abstract class AbstractSpliterator<IN, OUT> implements MxSpliterator<OUT>
 	}
 	
 	@Override
-	public void close() {	}
+	public void close() {
+	}
 }

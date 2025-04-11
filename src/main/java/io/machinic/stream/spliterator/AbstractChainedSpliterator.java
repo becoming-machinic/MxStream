@@ -24,12 +24,11 @@ public abstract class AbstractChainedSpliterator<IN, OUT> implements MxSpliterat
 	
 	protected final MxStream<IN> stream;
 	protected final Spliterator<IN> previousSpliterator;
-
 	
 	public AbstractChainedSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator) {
 		this.stream = stream;
 		this.previousSpliterator = previousSpliterator;
-
+		
 	}
 	
 	protected MxStream<IN> getStream() {
@@ -67,5 +66,6 @@ public abstract class AbstractChainedSpliterator<IN, OUT> implements MxSpliterat
 	}
 	
 	@Override
-	public void close() {	}
+	public void close() {
+	}
 }
