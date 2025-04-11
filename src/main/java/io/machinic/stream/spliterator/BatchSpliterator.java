@@ -37,16 +37,19 @@ public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> 
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super List<T>> action) {
-		List<T> batch = batchReference.getPlain();
-		if (this.previousSpliterator.tryAdvance(batch::add)) {
+		if (this.previousSpliterator.tryAdvance(value -> {
+			List<T> batch = batchReference.getPlain();
+			batch.add(value);
+			// Push batch if full
 			if (batch.size() >= batchSize) {
 				action.accept(batch);
 				batchReference.setPlain(new ArrayList<>(batchSize));
 			}
+		})) {
 			return true;
 		} else {
-			if (!batch.isEmpty()) {
-				action.accept(batch);
+			if (!batchReference.getPlain().isEmpty()) {
+				action.accept(batchReference.getPlain());
 				batchReference.setPlain(new ArrayList<>(batchSize));
 			}
 			return false;

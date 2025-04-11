@@ -17,6 +17,7 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,35 @@ public class MxStreamBatchTest {
 				MxStream.of(INTEGER_LIST_A)
 						.batch(5)
 						.toList());
+	}
+	
+	@Test
+	public void batchTestWithFlatMap() {
+		IntegerGeneratorIterator iterator = new IntegerGeneratorIterator(100);
+		
+		List<List<Integer>> batches = MxStream.of(
+						MxStream.of(new IntegerGeneratorIterator(100))
+								.batch(50)
+								.toList())
+				.flatMap(List::stream)
+				.batch(5)
+				.toList();
+		
+		Assertions.assertEquals(20, batches.size());
+	}
+	
+	@Test
+	public void batchTimeoutTestWithFlatMap() {
+		IntegerGeneratorIterator iterator = new IntegerGeneratorIterator(100);
+		
+		List<List<Integer>> batches = MxStream.of(
+						MxStream.of(new IntegerGeneratorIterator(100))
+								.batch(50)
+								.toList())
+				.flatMap(List::stream)
+				.batch(5, 300, TimeUnit.SECONDS)
+				.toList();
+		Assertions.assertEquals(20, batches.size());
 	}
 	
 	@Test
@@ -104,5 +134,5 @@ public class MxStreamBatchTest {
 						.batch(4, 1, TimeUnit.MILLISECONDS)
 						.toList());
 	}
-
+	
 }

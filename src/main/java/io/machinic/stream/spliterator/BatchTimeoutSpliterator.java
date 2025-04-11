@@ -45,14 +45,18 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 		// If no batch exists then create one
 		batchReference.compareAndSet(null, new Batch());
 		
-		Batch batch = batchReference.getPlain();
-		if (this.previousSpliterator.tryAdvance(batch::add)) {
+		if (this.previousSpliterator.tryAdvance(value -> {
+			Batch batch = batchReference.getPlain();
+			batch.add(value);
+			// Push batch if full or expired
 			if (batch.getBatch().size() >= batchSize || batch.isExpired()) {
 				action.accept(batch.getBatch());
 				batchReference.setPlain(new Batch());
 			}
+		})) {
 			return true;
 		} else {
+			Batch batch = batchReference.getPlain();
 			if (!batch.getBatch().isEmpty()) {
 				action.accept(batch.getBatch());
 				batchReference.setPlain(new Batch());
