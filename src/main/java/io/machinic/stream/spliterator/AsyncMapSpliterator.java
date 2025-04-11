@@ -80,6 +80,24 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		return queue.poll();
 	}
 	
+	/**
+	 * Wait until task completes
+	 * @param future the future that get will be called on
+	 * @return the task result
+	 */
+	private TaskResult get(Future<TaskResult> future) throws ExecutionException, InterruptedException {
+		if (metric != null) {
+			long startTimestamp = System.nanoTime();
+			try {
+				return future.get();
+			} finally {
+				metric.onWait(System.nanoTime() - startTimestamp);
+			}
+		} else {
+			return future.get();
+		}
+	}
+	
 	protected int getQueueSize() {
 		if (this.isParallel()) {
 			synchronized (queue) {
@@ -104,7 +122,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		
 		if (future != null) {
 			try {
-				TaskResult result = future.get();
+				TaskResult result = this.get(future);
 				if (metric != null) {
 					metric.onEvent(result.duration);
 				}

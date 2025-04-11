@@ -16,14 +16,16 @@
 
 package io.machinic.stream.metrics;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class AsyncMapMetric{
+public class AsyncMapMetric {
 	
 	private volatile long startTimestamp = 0L;
 	private volatile long endTimestamp = 0L;
 	private final AtomicLong atomicCounter = new AtomicLong();
 	private final AtomicLong taskDuration = new AtomicLong();
+	private final AtomicLong waitDuration = new AtomicLong();
 	
 	public void onStart() {
 		this.startTimestamp = System.currentTimeMillis();
@@ -32,6 +34,10 @@ public class AsyncMapMetric{
 	public void onEvent(long taskDuration) {
 		atomicCounter.incrementAndGet();
 		this.taskDuration.addAndGet(taskDuration);
+	}
+	
+	public void onWait(long waitDurationNanos) {
+		this.waitDuration.addAndGet(waitDurationNanos);
 	}
 	
 	public void onStop() {
@@ -52,6 +58,10 @@ public class AsyncMapMetric{
 	
 	public long getTaskDuration() {
 		return taskDuration.get();
+	}
+	
+	public long getWaitDuration() {
+		return TimeUnit.NANOSECONDS.toMillis(waitDuration.get());
 	}
 	
 }

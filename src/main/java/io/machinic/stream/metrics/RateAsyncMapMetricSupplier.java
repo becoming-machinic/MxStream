@@ -71,4 +71,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 		return sum.stream().reduce(0D, Double::sum) / sum.size();
 	}
 	
+	public long getWaitDuration() {
+		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getWaitDuration).sum();
+	}
 }
