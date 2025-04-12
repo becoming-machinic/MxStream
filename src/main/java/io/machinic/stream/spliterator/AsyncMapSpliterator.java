@@ -68,65 +68,42 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		queue.add(this.executorService.submit(taskCallable));
 	}
 	
-	private Future<TaskResult> peekNext() {
+	private int getQueueSize() {
+		return queue.size();
+	}
+	
+	private boolean peekNext() {
 		Future<TaskResult> future = queue.peek();
-		if (future != null && future.isDone()) {
-			return future;
+		return future != null && future.isDone();
+	}
+	
+	private TaskResult getNext() throws ExecutionException, InterruptedException {
+		Future<TaskResult> nextFuture = queue.poll();
+		if (nextFuture != null) {
+			if (metric != null) {
+				long startTimestamp = System.nanoTime();
+				try {
+					return nextFuture.get();
+				} finally {
+					metric.onWait(System.nanoTime() - startTimestamp);
+				}
+			} else {
+				return nextFuture.get();
+			}
 		}
 		return null;
 	}
 	
-	private Future<TaskResult> dequeue() {
-		return queue.poll();
-	}
-	
-	/**
-	 * Wait until task completes
-	 * @param future the future that get will be called on
-	 * @return the task result
-	 */
-	private TaskResult get(Future<TaskResult> future) throws ExecutionException, InterruptedException {
-		if (metric != null) {
-			long startTimestamp = System.nanoTime();
+	private void dequeue(Consumer<? super OUT> action, boolean drain) {
+		if (peekNext() || this.getQueueSize() >= parallelism || drain) {
 			try {
-				return future.get();
-			} finally {
-				metric.onWait(System.nanoTime() - startTimestamp);
-			}
-		} else {
-			return future.get();
-		}
-	}
-	
-	protected int getQueueSize() {
-		if (this.isParallel()) {
-			synchronized (queue) {
-				return queue.size();
-			}
-		}
-		return queue.size();
-	}
-	
-	@Override
-	public boolean tryAdvance(Consumer<? super OUT> action) {
-		if (!started && this.metric != null) {
-			this.metric.onStart();
-			started = true;
-		}
-		
-		// process completed futures
-		Future<TaskResult> future = peekNext();
-		if (future != null || this.getQueueSize() >= parallelism) {
-			future = dequeue();
-		}
-		
-		if (future != null) {
-			try {
-				TaskResult result = this.get(future);
-				if (metric != null) {
-					metric.onEvent(result.duration);
+				TaskResult result = getNext();
+				if (result != null) {
+					if (metric != null) {
+						metric.onEvent(result.duration);
+					}
+					action.accept(result.output);
 				}
-				action.accept(result.output);
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			} catch (ExecutionException e) {
@@ -141,17 +118,31 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 				throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
 			}
 		}
+	}
+	
+	@Override
+	public boolean tryAdvance(Consumer<? super OUT> action) {
+		if (!started && this.metric != null) {
+			this.metric.onStart();
+			started = true;
+		}
 		
 		boolean canAdvance;
 		do {
 			canAdvance = this.previousSpliterator.tryAdvance(value ->
 			{
 				this.enqueue(this.createTask(value));
+				dequeue(action, false);
 			});
 		} while (canAdvance && this.getQueueSize() <= parallelism);
 		
-		return canAdvance
-				|| this.getQueueSize() != 0;
+		if (!canAdvance) {
+			do {
+				dequeue(action, true);
+			} while (this.getQueueSize() != 0);
+		}
+		
+		return canAdvance;
 	}
 	
 	@Override

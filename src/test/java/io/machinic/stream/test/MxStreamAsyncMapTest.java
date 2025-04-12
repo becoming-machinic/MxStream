@@ -19,6 +19,7 @@ package io.machinic.stream.test;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.test.utils.CountingSupplier;
+import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.function.Function;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
@@ -53,6 +55,20 @@ public class MxStreamAsyncMapTest {
 	@Test
 	public void asyncMapLargerParallelismTest() {
 		Assertions.assertEquals(STRING_LIST_A, MxStream.of(INTEGER_LIST_A).asyncMap(10, integer -> Integer.toString(integer)).toList());
+	}
+	
+	@Test
+	public void asyncMapWithFlatMap() {
+		List<Integer> integers = MxStream.of(
+						MxStream.of(new IntegerGeneratorIterator(100))
+								.batch(50)
+								.toList())
+				.flatMap(List::stream)
+				.asyncMap(2, value -> {
+					return value;
+				})
+				.toList();
+		Assertions.assertEquals(100, integers.size());
 	}
 	
 	@Test

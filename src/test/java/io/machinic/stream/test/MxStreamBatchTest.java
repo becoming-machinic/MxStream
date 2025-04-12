@@ -53,8 +53,6 @@ public class MxStreamBatchTest {
 	
 	@Test
 	public void batchTestWithFlatMap() {
-		IntegerGeneratorIterator iterator = new IntegerGeneratorIterator(100);
-		
 		List<List<Integer>> batches = MxStream.of(
 						MxStream.of(new IntegerGeneratorIterator(100))
 								.batch(50)
@@ -68,8 +66,6 @@ public class MxStreamBatchTest {
 	
 	@Test
 	public void batchTimeoutTestWithFlatMap() {
-		IntegerGeneratorIterator iterator = new IntegerGeneratorIterator(100);
-		
 		List<List<Integer>> batches = MxStream.of(
 						MxStream.of(new IntegerGeneratorIterator(100))
 								.batch(50)
