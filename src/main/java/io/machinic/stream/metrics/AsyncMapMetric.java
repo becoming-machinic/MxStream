@@ -57,7 +57,7 @@ public class AsyncMapMetric {
 	}
 	
 	public long getTaskDuration() {
-		return taskDuration.get();
+		return TimeUnit.NANOSECONDS.toMillis(taskDuration.get());
 	}
 	
 	public long getWaitDuration() {

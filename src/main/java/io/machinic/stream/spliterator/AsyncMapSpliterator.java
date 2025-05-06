@@ -166,7 +166,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		
 		@Override
 		public TaskResult call() throws Exception {
-			long startTimestamp = System.currentTimeMillis();
+			long startTimestamp = System.nanoTime();
 			try {
 				return new TaskResult(mapper.apply(input), startTimestamp);
 			} catch (Exception e) {
@@ -183,7 +183,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		
 		private TaskResult(OUT output, long startTimestamp) {
 			this.output = output;
-			this.duration = System.currentTimeMillis() - startTimestamp;
+			this.duration = Math.abs(System.nanoTime() - startTimestamp);
 		}
 	}
 }
