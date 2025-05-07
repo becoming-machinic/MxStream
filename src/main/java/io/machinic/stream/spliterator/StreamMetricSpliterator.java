@@ -42,10 +42,10 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 			streamMetric.onStart();
 			started = true;
 		}
-		
+		long startNanos = System.nanoTime();
 		return this.previousSpliterator.tryAdvance(value -> {
 			try {
-				this.streamMetric.onEvent();
+				this.streamMetric.onEvent(Math.abs(System.nanoTime() - startNanos));
 				action.accept(value);
 			} catch (StreamException e) {
 				throw e;

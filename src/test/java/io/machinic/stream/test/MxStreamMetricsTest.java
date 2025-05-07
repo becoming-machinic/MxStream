@@ -54,6 +54,7 @@ public class MxStreamMetricsTest {
 				})
 				.toList());
 		Assertions.assertEquals(INTEGER_LIST_A.size(), metricSupplier.getCount());
+		Assertions.assertTrue(metricSupplier.getWaitDuration() < 5);
 		Assertions.assertTrue(metricSupplier.getDuration() > 50);
 		Assertions.assertTrue(metricSupplier.getAverageRate() >= 90D && metricSupplier.getAverageRate() <= 110D, String.format("Average rate is %.2f", metricSupplier.getAverageRate()));
 	}
@@ -75,6 +76,25 @@ public class MxStreamMetricsTest {
 		Assertions.assertEquals(INTEGER_LIST_A.size(), metricSupplier.getCount());
 		Assertions.assertTrue(metricSupplier.getDuration() > 50);
 		Assertions.assertTrue(metricSupplier.getAverageRate() >= 70D && metricSupplier.getAverageRate() <= 90D, String.format("Average rate is %.2f", metricSupplier.getAverageRate()));
+	}
+	
+	@Test
+	public void streamMetricsUpstreamTimeTest() {
+		RateStreamMetricSupplier metricSupplier = new RateStreamMetricSupplier();
+		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_A)
+				.peek(value -> {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				})
+				.metrics(metricSupplier)
+				.toList());
+		Assertions.assertEquals(INTEGER_LIST_A.size(), metricSupplier.getCount());
+		Assertions.assertTrue(metricSupplier.getWaitDuration() > 90);
+		Assertions.assertTrue(metricSupplier.getDuration() > 50);
+		Assertions.assertTrue(metricSupplier.getAverageRate() >= 90D && metricSupplier.getAverageRate() <= 110D, String.format("Average rate is %.2f", metricSupplier.getAverageRate()));
 	}
 	
 }

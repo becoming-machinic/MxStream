@@ -52,4 +52,8 @@ public class RateStreamMetricSupplier implements StreamMetricSupplier {
 		return (sum.stream().reduce(0D, Double::sum) / sum.size()) * 1000D;
 	}
 	
+	public long getWaitDuration() {
+		return streamMetrics.stream().mapToLong(StreamMetric::getWaitDuration).sum();
+	}
+	
 }

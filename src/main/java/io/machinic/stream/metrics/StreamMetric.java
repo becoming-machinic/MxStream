@@ -16,6 +16,7 @@
 
 package io.machinic.stream.metrics;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class StreamMetric {
@@ -23,13 +24,15 @@ public class StreamMetric {
 	private volatile long startTimestamp = 0L;
 	private volatile long endTimestamp = 0L;
 	private final AtomicLong atomicCounter = new AtomicLong();
+	private final AtomicLong waitDuration = new AtomicLong();
 	
 	public void onStart() {
 		this.startTimestamp = System.currentTimeMillis();
 	}
 	
-	public void onEvent() {
+	public void onEvent(long waitDurationNanos) {
 		atomicCounter.incrementAndGet();
+		this.waitDuration.addAndGet(waitDurationNanos);
 	}
 	
 	public void onStop() {
@@ -46,5 +49,9 @@ public class StreamMetric {
 			return System.currentTimeMillis() - startTimestamp;
 		}
 		return endTime - startTimestamp;
+	}
+	
+	public long getWaitDuration() {
+		return TimeUnit.NANOSECONDS.toMillis(waitDuration.get());
 	}
 }

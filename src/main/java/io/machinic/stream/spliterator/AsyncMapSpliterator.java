@@ -165,7 +165,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		}
 		
 		@Override
-		public TaskResult call() throws Exception {
+		public TaskResult call() {
 			long startTimestamp = System.nanoTime();
 			try {
 				return new TaskResult(mapper.apply(input), startTimestamp);
