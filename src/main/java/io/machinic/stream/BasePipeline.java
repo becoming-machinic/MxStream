@@ -44,7 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -158,13 +158,13 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
-		return this.asyncMap(parallelism, ForkJoinPool.commonPool(), mapper);
+		return this.asyncMap(parallelism, Executors.newVirtualThreadPerTaskExecutor(), mapper);
 	}
 	
 	@Override
 	public <R> MxStream<R> asyncMap(int parallelism, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
-		return this.asyncMap(parallelism, ForkJoinPool.commonPool(), supplier);
+		return this.asyncMap(parallelism, Executors.newVirtualThreadPerTaskExecutor(), supplier);
 	}
 	
 	@Override
