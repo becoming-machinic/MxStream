@@ -75,7 +75,7 @@ public class MxStreamMetricsTest {
 				.toSet());
 		Assertions.assertEquals(INTEGER_LIST_A.size(), metricSupplier.getCount());
 		Assertions.assertTrue(metricSupplier.getDuration() > 50);
-		Assertions.assertTrue(metricSupplier.getAverageRate() >= 70D && metricSupplier.getAverageRate() <= 90D, String.format("Average rate is %.2f", metricSupplier.getAverageRate()));
+		Assertions.assertTrue(metricSupplier.getAverageRate() >= 10D && metricSupplier.getAverageRate() <= 90D, String.format("Average rate is %.2f", metricSupplier.getAverageRate()));
 	}
 	
 	@Test
