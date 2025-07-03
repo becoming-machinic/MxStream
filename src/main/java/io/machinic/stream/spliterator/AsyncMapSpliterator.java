@@ -21,7 +21,6 @@ import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.metrics.AsyncMapMetric;
 import io.machinic.stream.metrics.AsyncMapMetricSupplier;
-import io.machinic.stream.util.Opp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		this.parallelism = parallelism;
 		this.executorService = executorService;
 		this.metricSupplier = metricSupplier;
-		this.metric = Opp.applyOrNull(metricSupplier, AsyncMapMetricSupplier::get);
+		this.metric = (metricSupplier != null ? metricSupplier.get() : null);
 		this.queue = new ArrayDeque<>(parallelism + 2);
 	}
 	
