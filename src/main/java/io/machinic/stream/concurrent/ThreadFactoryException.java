@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-module io.machinic.stream {
-	requires org.slf4j;
-	requires static com.fasterxml.jackson.annotation;
-	exports io.machinic.stream;
-	exports io.machinic.stream.spliterator;
-	exports io.machinic.stream.sink;
-	exports io.machinic.stream.metrics;
+package io.machinic.stream.concurrent;
+
+public class ThreadFactoryException extends RuntimeException {
+    public ThreadFactoryException(String message) {
+        super(message);
+    }
+
+    public ThreadFactoryException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
