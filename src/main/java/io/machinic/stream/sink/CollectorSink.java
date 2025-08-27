@@ -39,12 +39,18 @@ public class CollectorSink<T, A, R> extends AbstractSink<T> {
 	
 	@Override
 	public void forEachRemaining() {
-		//noinspection StatementWithEmptyBody
-		do {
-			// NOOP
-		} while (previousSpliterator.tryAdvance(
-				value -> collector.accumulator().accept(container, value)
-		));
+		try {
+			//noinspection StatementWithEmptyBody
+			do {
+				// NOOP
+			} while (previousSpliterator.tryAdvance(
+					value -> collector.accumulator().accept(container, value)
+			));
+		} catch (RuntimeException e) {
+			// if something fails stop the source to wind down the stream
+			stream.stop();
+			throw e;
+		}
 	}
 	
 }

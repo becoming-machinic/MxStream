@@ -40,17 +40,23 @@ public class ForEachSink<T> extends AbstractSink<T> {
 	
 	@Override
 	public void forEachRemaining() {
-		//noinspection StatementWithEmptyBody
-		do {
-			// NOOP
-		} while (previousSpliterator.tryAdvance(value ->
-		{
-			try {
-				consumer.accept(value);
-			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
-			}
-		}));
+		try {
+			//noinspection StatementWithEmptyBody
+			do {
+				// NOOP
+			} while (previousSpliterator.tryAdvance(value ->
+			{
+				try {
+					consumer.accept(value);
+				} catch (Exception e) {
+					stream.exceptionHandler().onException(e, value);
+				}
+			}));
+		} catch (RuntimeException e) {
+			// if something fails stop the source to wind down the stream
+			stream.stop();
+			throw e;
+		}
 	}
 	
 }

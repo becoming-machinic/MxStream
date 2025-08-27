@@ -102,6 +102,10 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		return exceptionHandler;
 	}
 	
+	public void stop() {
+		spliterator.cancel();
+	}
+	
 	public static class StreamSource<IN> extends PipelineSource<IN> {
 		
 		private final Stream<IN> stream;

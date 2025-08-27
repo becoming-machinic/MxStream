@@ -103,6 +103,11 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
+	public void stop() {
+		this.getSource().stop();
+	}
+	
+	@Override
 	public MxStream<OUT> filter(Predicate<? super OUT> predicate) {
 		Objects.requireNonNull(predicate);
 		return this.filter(() -> predicate);

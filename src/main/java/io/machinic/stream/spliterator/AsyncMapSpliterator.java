@@ -19,6 +19,7 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.metrics.AsyncMapMetric;
 import io.machinic.stream.metrics.AsyncMapMetricSupplier;
 import org.slf4j.Logger;
@@ -77,17 +78,32 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	}
 	
 	private TaskResult getNext() throws ExecutionException, InterruptedException {
+		// Check interrupted status before pulling item from queue
+		if(Thread.interrupted()) {
+			throw new InterruptedException();
+		}
+		
 		Future<TaskResult> nextFuture = queue.poll();
 		if (nextFuture != null) {
 			if (metric != null) {
 				long startTimestamp = System.nanoTime();
 				try {
 					return nextFuture.get();
+				} catch (InterruptedException e) {
+					// cancel task that has already been removed form queue
+					nextFuture.cancel(true);
+					throw e;
 				} finally {
 					metric.onWait(System.nanoTime() - startTimestamp);
 				}
 			} else {
-				return nextFuture.get();
+				try {
+					return nextFuture.get();
+				} catch (InterruptedException e) {
+					// cancel task that has already been removed form queue
+					nextFuture.cancel(true);
+					throw e;
+				}
 			}
 		}
 		return null;
@@ -104,7 +120,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 					action.accept(result.output);
 				}
 			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
+				throw new StreamInterruptedException("Stream was interrupted. Events will be canceled and stream will be terminated.", e);
 			} catch (ExecutionException e) {
 				if (e.getCause() != null && e.getCause() instanceof StreamEventException) {
 					logger.debug("asyncMap operation skipping message due to caught exception {}", e.getCause().getMessage());
@@ -154,6 +170,13 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		if (this.metric != null) {
 			this.metric.onStop();
 		}
+		this.queue.forEach(task -> {
+			try {
+				task.cancel(true);
+			} catch (Exception e) {
+				logger.warn("Event failed while draining event queue. Caused by {}", e.getMessage());
+			}
+		});
 	}
 	
 	private class TaskCallable implements Callable<TaskResult> {
@@ -168,6 +191,8 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 			long startTimestamp = System.nanoTime();
 			try {
 				return new TaskResult(mapper.apply(input), startTimestamp);
+			} catch (StreamException e) {
+				throw e;
 			} catch (Exception e) {
 				getStream().exceptionHandler().onException(e, input);
 				throw new StreamEventException(input, String.format("Event %s failed. Caused by %s", input, e.getMessage()), e);

@@ -88,6 +88,11 @@ public interface MxStream<T> {
 	MxStreamExceptionHandler exceptionHandler();
 	
 	/**
+	 * Begin gracefully stopping this stream.
+	 */
+	void stop();
+	
+	/**
 	 * Filters the elements of the stream using the given predicate.
 	 * @param predicate the predicate to apply to each element
 	 * @return a new stream with the mapped elements
@@ -261,8 +266,26 @@ public interface MxStream<T> {
 	
 	MxStream<T> tap(TapBuilder<T> tapBuilder);
 	
-	void forEach(Consumer<? super T> action);
+	/**
+	 * Performs the given action for each element of the stream.
+	 * This method is a terminal operation and will process all elements.
+	 *
+	 * @param action the action to be performed for each element
+	 * @throws StreamException if an error occurs during stream processing
+	 * @throws StreamSourceException if the stream source fails during processing
+	 * @throws StreamInterruptedException if a stream thread is interrupted during stream processing
+	 */
+	void forEach(Consumer<? super T> action) throws StreamException;
 	
+	/**
+	 * Performs the given action for each element of the stream.
+	 * This method is a terminal operation and will process all elements.
+	 *
+	 * @param action the action to be performed for each element
+	 * @throws StreamException if an error occurs during stream processing
+	 * @throws StreamSourceException if the stream source fails during processing
+	 * @throws StreamInterruptedException if a stream thread is interrupted during stream processing
+	 */
 	void forEach(Supplier<Consumer<? super T>> supplier);
 	
 	<R, A> R collect(Collector<? super T, A, R> collector);

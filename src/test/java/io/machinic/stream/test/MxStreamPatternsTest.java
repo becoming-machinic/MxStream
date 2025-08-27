@@ -17,6 +17,7 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.TapBuilder;
 import io.machinic.stream.metrics.RateAsyncMapMetricSupplier;
 import io.machinic.stream.test.utils.IntegerGeneratorIterator;
@@ -30,9 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -48,7 +51,7 @@ public class MxStreamPatternsTest {
 	@Test
 	public void asyncMapTest() {
 		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
-		String joined = MxStream.of(new IntegerGeneratorIterator(500))
+		long count = MxStream.of(new IntegerGeneratorIterator(500))
 				.asyncMap(100, ForkJoinPool.commonPool(),
 						metricSupplier,
 						integer -> {
@@ -60,13 +63,77 @@ public class MxStreamPatternsTest {
 							}
 							return Integer.toString(integer);
 						})
-				.collect(Collectors.joining(","));
-		System.out.println(joined);
+				.count();
 		System.out.println("Duration: " + metricSupplier.getDuration());
 		System.out.println("Total Duration: " + metricSupplier.getTotalDuration());
 		System.out.println("Average task duration: " + metricSupplier.getAverageDuration());
 		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 		System.out.println("Wait Duration: " + metricSupplier.getWaitDuration());
+	}
+	
+	@Test
+	public void asyncMapEventInterruptTest() throws InterruptedException {
+		Thread streamThread = Thread.currentThread();
+		AtomicInteger highestValue = new AtomicInteger();
+		
+		Assertions.assertThrows(StreamInterruptedException.class, () -> {
+			MxStream.of(new IntegerGeneratorIterator(500))
+					.asyncMap(10, Executors.newSingleThreadExecutor(),
+							integer -> {
+								if (integer == 100) {
+									// Interrup stream thread
+									streamThread.interrupt();
+									try {
+										// stream should interrupt this task before it completes
+										Thread.sleep(30000);
+									} catch (InterruptedException e) {
+										throw new RuntimeException(e);
+									}
+								}
+								highestValue.set(integer);
+								return Integer.toString(integer);
+							})
+					.count();
+		});
+		// since stream is a newSingleThreadExecutor it should cancel all tasks after the interrupt
+		Assertions.assertEquals(99, highestValue.get());
+	}
+	
+	@Test
+	public void asyncMapEventStreamInterruptTest() throws InterruptedException {
+		AtomicInteger highestValue = new AtomicInteger();
+		
+		Assertions.assertThrows(StreamInterruptedException.class, () -> {
+			MxStream.of(new IntegerGeneratorIterator(500))
+					.asyncMap(10, Executors.newSingleThreadExecutor(),
+							integer -> {
+								if (integer == 100) {
+									throw new StreamInterruptedException("StreamInterruptedException");
+								}
+								highestValue.set(integer);
+								return Integer.toString(integer);
+							})
+					.count();
+		});
+		Assertions.assertEquals(109, highestValue.get());
+	}
+	
+	@Test
+	public void asyncMapEventStopTest() throws InterruptedException {
+		
+		MxStream<Integer> stream = MxStream.of(new IntegerGeneratorIterator(500));
+		
+		long count = stream.asyncMap(1, Executors.newSingleThreadExecutor(),
+						integer -> {
+							if (integer == 100) {
+								stream.stop();
+							}
+							return Integer.toString(integer);
+						})
+				.count();
+		
+		// since stream is a newSingleThreadExecutor it should cancel all tasks after the interrupt
+		Assertions.assertEquals(101, count);
 	}
 	
 	@Test
