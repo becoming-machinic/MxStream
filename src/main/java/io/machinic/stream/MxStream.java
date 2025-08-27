@@ -281,7 +281,7 @@ public interface MxStream<T> {
 	 * Performs the given action for each element of the stream.
 	 * This method is a terminal operation and will process all elements.
 	 *
-	 * @param action the action to be performed for each element
+	 * @param supplier the action supplier to be performed for each element
 	 * @throws StreamException if an error occurs during stream processing
 	 * @throws StreamSourceException if the stream source fails during processing
 	 * @throws StreamInterruptedException if a stream thread is interrupted during stream processing
