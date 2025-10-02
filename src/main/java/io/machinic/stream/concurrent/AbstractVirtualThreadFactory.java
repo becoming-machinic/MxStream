@@ -51,7 +51,7 @@ public abstract class AbstractVirtualThreadFactory implements ThreadFactory {
 			
 		} catch (InaccessibleObjectException e) {
 			if (e.getMessage().contains("opens java.lang")) {
-				throw new ThreadFactoryException(String.format("The Module java.base is inaccessible. To resolve this add \"--add-opens=java.base/java.lang=%s\" as a JVM argument", AbstractVirtualThreadFactory.class.getModule().getName()), e);
+				throw new ThreadFactoryException("The Module java.base is inaccessible. To resolve this add \"--add-opens=java.base/java.lang=io.machinic.stream\" or \"--add-opens=java.base/java.lang=ALL-UNNAMED\" as a JVM argument", e);
 			}
 			throw new ThreadFactoryException(String.format("Accessing java.lang.VirtualThread failed. Caused by %s", e.getMessage()), e);
 		} catch (Exception e) {
