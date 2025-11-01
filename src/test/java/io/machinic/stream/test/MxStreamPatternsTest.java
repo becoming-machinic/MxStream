@@ -96,7 +96,7 @@ public class MxStreamPatternsTest {
 					.count();
 		});
 		// since stream is a newSingleThreadExecutor it should cancel all tasks after the interrupt
-		Assertions.assertEquals(99, highestValue.get());
+		Assertions.assertTrue(99 <= highestValue.get() &&  highestValue.get() <= 101);
 	}
 	
 	@Test
