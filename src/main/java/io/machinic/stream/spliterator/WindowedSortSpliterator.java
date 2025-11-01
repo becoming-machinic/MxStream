@@ -21,7 +21,6 @@ import io.machinic.stream.MxStream;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -31,7 +30,7 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	private final Supplier<Comparator<? super T>> supplier;
 	private final Queue<T> queue;
 	
-	public WindowedSortSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, int windowSize, Supplier<Comparator<? super T>> supplier) {
+	public WindowedSortSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int windowSize, Supplier<Comparator<? super T>> supplier) {
 		super(stream, previousSpliterator);
 		this.windowSize = windowSize;
 		this.supplier = supplier;
@@ -85,7 +84,7 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new WindowedSortSpliterator<>(stream, spliterator, windowSize, supplier);
 	}
 	

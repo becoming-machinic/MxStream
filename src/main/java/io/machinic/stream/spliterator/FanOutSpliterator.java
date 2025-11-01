@@ -18,7 +18,6 @@ package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
 
-import java.util.Spliterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
@@ -28,7 +27,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	private final BlockingQueue<Wrapper> queue;
 	private volatile boolean done = false;
 	
-	public FanOutSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, int bufferSize) {
+	public FanOutSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int bufferSize) {
 		super(stream, previousSpliterator);
 		this.queue = new ArrayBlockingQueue<>(bufferSize);
 	}
@@ -53,19 +52,14 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	}
 	
 	@Override
-	protected Spliterator<T> split(Spliterator<T> spliterator) {
+	protected MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		// not used for this implementation
 		throw new UnsupportedOperationException();
 	}
 	
 	@Override
-	public Spliterator<T> trySplit() {
+	public MxSpliterator<T> trySplit() {
 		return new FanOutSecondarySpliterator(this);
-	}
-	
-	@Override
-	public int characteristics() {
-		return this.previousSpliterator.characteristics() | Spliterator.CONCURRENT;
 	}
 	
 	private class Wrapper {
@@ -80,7 +74,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		}
 	}
 	
-	public class FanOutSecondarySpliterator implements Spliterator<T> {
+	public class FanOutSecondarySpliterator implements MxSpliterator<T> {
 		
 		private final FanOutSpliterator<T> parent;
 		
@@ -99,18 +93,13 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		}
 		
 		@Override
-		public Spliterator<T> trySplit() {
+		public MxSpliterator<T> trySplit() {
 			return parent.trySplit();
 		}
 		
 		@Override
-		public long estimateSize() {
-			return parent.estimateSize();
-		}
+		public void close() {
 		
-		@Override
-		public int characteristics() {
-			return parent.characteristics();
 		}
 	}
 }

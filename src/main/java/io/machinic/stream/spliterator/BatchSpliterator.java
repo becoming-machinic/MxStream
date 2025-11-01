@@ -20,7 +20,6 @@ import io.machinic.stream.MxStream;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -29,7 +28,7 @@ public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> 
 	private final int batchSize;
 	private final AtomicReference<List<T>> batchReference;
 	
-	public BatchSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, int batchSize) {
+	public BatchSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int batchSize) {
 		super(stream, previousSpliterator);
 		this.batchSize = batchSize;
 		batchReference = new AtomicReference<>(new ArrayList<>(batchSize));
@@ -57,7 +56,7 @@ public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> 
 	}
 	
 	@Override
-	public Spliterator<List<T>> split(Spliterator<T> spliterator) {
+	public MxSpliterator<List<T>> split(MxSpliterator<T> spliterator) {
 		return new BatchSpliterator<>(this.stream, spliterator, batchSize);
 	}
 	

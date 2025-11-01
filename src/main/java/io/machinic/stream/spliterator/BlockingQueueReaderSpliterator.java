@@ -18,7 +18,6 @@ package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
 
-import java.util.Spliterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -52,7 +51,7 @@ public class BlockingQueueReaderSpliterator<T> extends AbstractSpliterator<T, T>
 	}
 	
 	@Override
-	protected Spliterator<T> split() {
+	protected MxSpliterator<T> split() {
 		return new BlockingQueueReaderSpliterator<>(this.stream, parallel, queue);
 	}
 	

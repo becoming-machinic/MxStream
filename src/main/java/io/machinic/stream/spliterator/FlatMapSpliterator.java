@@ -19,7 +19,6 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,7 +29,7 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	private final Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier;
 	private final Function<? super IN, ? extends Stream<? extends OUT>> mapper;
 	
-	public FlatMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier) {
+	public FlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
@@ -50,7 +49,7 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	}
 	
 	@Override
-	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
+	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
 		return new FlatMapSpliterator<>(this.stream, spliterator, supplier);
 	}
 	

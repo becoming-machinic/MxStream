@@ -19,6 +19,7 @@ package io.machinic.stream;
 import io.machinic.stream.spliterator.AbstractChainedSpliterator;
 import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator;
 import io.machinic.stream.spliterator.CancellableSpliterator;
+import io.machinic.stream.spliterator.MxSpliterator;
 import io.machinic.stream.util.BufferedReaderIterator;
 
 import java.io.BufferedReader;
@@ -29,6 +30,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements Source<IN> {
@@ -40,12 +42,13 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	private final CancellableSpliterator<IN> spliterator;
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
 	private volatile StreamException streamException = null;
+	private volatile long shutdownTimeoutMillis = 30000;
 	
-	public PipelineSource(Spliterator<IN> spliterator, boolean parallel) {
+	public PipelineSource(MxSpliterator<IN> spliterator, boolean parallel) {
 		this(spliterator, parallel, ForkJoinPool.getCommonPoolParallelism(), ForkJoinPool.commonPool());
 	}
 	
-	public PipelineSource(Spliterator<IN> spliterator, boolean parallel, int parallelism, ExecutorService executorService) {
+	public PipelineSource(MxSpliterator<IN> spliterator, boolean parallel, int parallelism, ExecutorService executorService) {
 		this.spliterator = new CancellableSpliterator<>(this, spliterator);
 		this.parallel = parallel;
 		this.parallelism = parallelism;
@@ -111,12 +114,12 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		private final Stream<IN> stream;
 		
 		public StreamSource(Stream<IN> stream) {
-			super(stream.spliterator(), stream.isParallel());
+			super(new WrappingSpliterator<>(stream.spliterator()), stream.isParallel());
 			this.stream = stream;
 		}
 		
 		public StreamSource(Stream<IN> stream, int parallelism, ExecutorService executorService) {
-			super(stream.spliterator(), stream.isParallel(), parallelism, executorService);
+			super(new WrappingSpliterator<>(stream.spliterator()), stream.isParallel(), parallelism, executorService);
 			this.stream = stream;
 		}
 		
@@ -131,11 +134,11 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	public static class IteratorSource<IN> extends PipelineSource<IN> {
 		
 		public IteratorSource(Iterator<IN> iterator) {
-			super(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
+			super(new WrappingSpliterator<>(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED)), false);
 		}
 		
 		public IteratorSource(Spliterator<IN> spliterator, boolean parallel) {
-			super(spliterator, parallel);
+			super(new WrappingSpliterator<>(spliterator), parallel);
 		}
 		
 		@Override
@@ -192,4 +195,31 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		}
 	}
 	
+	public static class WrappingSpliterator<IN> implements MxSpliterator<IN> {
+		
+		private final Spliterator<IN> spliterator;
+		
+		public WrappingSpliterator(Spliterator<IN> spliterator) {
+			this.spliterator = spliterator;
+		}
+		
+		@Override
+		public boolean tryAdvance(Consumer<? super IN> action) {
+			return spliterator.tryAdvance(action);
+		}
+		
+		@Override
+		public MxSpliterator<IN> trySplit() {
+			Spliterator<IN> split = spliterator.trySplit();
+			if (split != null) {
+				return new WrappingSpliterator<>(split);
+			}
+			return null;
+		}
+		
+		@Override
+		public void close() {
+		
+		}
+	}
 }

@@ -18,22 +18,21 @@ package io.machinic.stream.sink;
 
 import io.machinic.stream.MxCollector;
 import io.machinic.stream.MxStream;
-
-import java.util.Spliterator;
+import io.machinic.stream.spliterator.MxSpliterator;
 
 public class CollectorSink<T, A, R> extends AbstractSink<T> {
 	
 	private final MxCollector<? super T, A, R> collector;
 	private final A container;
 	
-	public CollectorSink(MxStream<T> stream, Spliterator<T> previousSpliterator, MxCollector<? super T, A, R> collector) {
+	public CollectorSink(MxStream<T> stream, MxSpliterator<T> previousSpliterator, MxCollector<? super T, A, R> collector) {
 		super(stream, previousSpliterator);
 		this.collector = collector;
 		this.container = collector.get();
 	}
 	
 	@Override
-	protected AbstractSink<T> split(Spliterator<T> spliterator) {
+	protected AbstractSink<T> split(MxSpliterator<T> spliterator) {
 		return new CollectorSink<>(stream, spliterator, collector);
 	}
 	

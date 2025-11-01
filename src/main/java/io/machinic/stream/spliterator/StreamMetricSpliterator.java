@@ -21,7 +21,6 @@ import io.machinic.stream.StreamException;
 import io.machinic.stream.metrics.StreamMetric;
 import io.machinic.stream.metrics.StreamMetricSupplier;
 
-import java.util.Spliterator;
 import java.util.function.Consumer;
 
 public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T> {
@@ -30,7 +29,7 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	private final StreamMetric streamMetric;
 	private boolean started = false;
 	
-	public StreamMetricSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, StreamMetricSupplier metricSupplier) {
+	public StreamMetricSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, StreamMetricSupplier metricSupplier) {
 		super(stream, previousSpliterator);
 		this.metricSupplier = metricSupplier;
 		this.streamMetric = metricSupplier.get();
@@ -57,7 +56,7 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new StreamMetricSpliterator<>(this.stream, spliterator, metricSupplier);
 	}
 	

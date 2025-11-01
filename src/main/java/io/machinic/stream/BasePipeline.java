@@ -80,10 +80,6 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	protected abstract PipelineSource<?> getSource();
 	
-	public int getCharacteristics() {
-		return getSpliterator().characteristics();
-	}
-	
 	protected abstract AbstractChainedSpliterator<IN, OUT> getSpliterator();
 	
 	public StreamException getException() {
@@ -297,7 +293,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	@Override
 	public Stream<OUT> toStream() {
-		return StreamSupport.stream(this.getSpliterator(), this.isParallel());
+		return StreamSupport.stream(new UnwrapSpliterator<>(this, this.getSpliterator()), this.isParallel());
 	}
 	
 	private void processSink(AbstractSink<OUT> sink) {

@@ -20,7 +20,6 @@ import io.machinic.stream.MxStream;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Spliterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -32,7 +31,7 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 	private final long timeout;
 	private final TimeUnit unit;
 	
-	public BatchTimeoutSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, int batchSize, long timeout, TimeUnit unit) {
+	public BatchTimeoutSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int batchSize, long timeout, TimeUnit unit) {
 		super(stream, previousSpliterator);
 		this.batchSize = batchSize;
 		this.timeout = timeout;
@@ -66,7 +65,7 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 	}
 	
 	@Override
-	public Spliterator<List<T>> split(Spliterator<T> spliterator) {
+	public MxSpliterator<List<T>> split(MxSpliterator<T> spliterator) {
 		return new BatchTimeoutSpliterator<>(this.stream, spliterator, batchSize, timeout, unit);
 	}
 	

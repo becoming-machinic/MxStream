@@ -18,7 +18,6 @@ package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
 
-import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -26,13 +25,13 @@ public class CancellableSpliterator<T> extends AbstractChainedSpliterator<T, T> 
 	
 	private final AtomicBoolean cancelled;
 	
-	public CancellableSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator) {
+	public CancellableSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator) {
 		super(stream, previousSpliterator);
 		this.cancelled = new AtomicBoolean(false);
 	}
 	
 	// Also set cancelled reference for split
-	private CancellableSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, AtomicBoolean cancelled) {
+	private CancellableSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, AtomicBoolean cancelled) {
 		super(stream, previousSpliterator);
 		this.cancelled = cancelled;
 	}
@@ -43,14 +42,8 @@ public class CancellableSpliterator<T> extends AbstractChainedSpliterator<T, T> 
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new CancellableSpliterator<>(this.stream, spliterator, cancelled);
-	}
-	
-	@Override
-	public int characteristics() {
-		// MxStreams are not sized
-		return this.previousSpliterator.characteristics() & (Spliterator.IMMUTABLE | Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.CONCURRENT | Spliterator.ORDERED | Spliterator.NONNULL);
 	}
 	
 	public void cancel() {

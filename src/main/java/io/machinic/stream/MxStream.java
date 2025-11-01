@@ -63,12 +63,6 @@ public interface MxStream<T> {
 	boolean isClosed();
 	
 	/**
-	 * returns the characteristics of the stream.
-	 * @return the characteristics of the stream
-	 */
-	int getCharacteristics();
-	
-	/**
 	 * Returns the exception encountered during stream processing, if any.
 	 * @return the exception encountered, or else null
 	 */

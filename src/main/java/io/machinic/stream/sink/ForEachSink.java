@@ -17,8 +17,8 @@
 package io.machinic.stream.sink;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.spliterator.MxSpliterator;
 
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -27,14 +27,14 @@ public class ForEachSink<T> extends AbstractSink<T> {
 	private final Supplier<Consumer<? super T>> supplier;
 	private final Consumer<? super T> consumer;
 	
-	public ForEachSink(MxStream<T> stream, Spliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
+	public ForEachSink(MxStream<T> stream, MxSpliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.consumer = supplier.get();
 	}
 	
 	@Override
-	protected AbstractSink<T> split(Spliterator<T> spliterator) {
+	protected AbstractSink<T> split(MxSpliterator<T> spliterator) {
 		return new ForEachSink<>(stream, spliterator, supplier);
 	}
 	

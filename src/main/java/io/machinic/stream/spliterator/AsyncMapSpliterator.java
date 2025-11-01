@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.Spliterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -49,7 +48,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	private final Queue<Future<TaskResult>> queue;
 	private boolean started;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, Spliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
@@ -79,7 +78,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	private TaskResult getNext() throws ExecutionException, InterruptedException {
 		// Check interrupted status before pulling item from queue
-		if(Thread.interrupted()) {
+		if (Thread.interrupted()) {
 			throw new InterruptedException();
 		}
 		
@@ -161,7 +160,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	}
 	
 	@Override
-	public AbstractChainedSpliterator<IN, OUT> split(Spliterator<IN> spliterator) {
+	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
 		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, metricSupplier, supplier);
 	}
 	

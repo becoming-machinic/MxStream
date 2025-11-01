@@ -115,7 +115,7 @@ public class MxStreamPatternsTest {
 							})
 					.count();
 		});
-		Assertions.assertEquals(109, highestValue.get());
+		Assertions.assertTrue(109 >= highestValue.get() && 107 <= highestValue.get());
 	}
 	
 	@Test

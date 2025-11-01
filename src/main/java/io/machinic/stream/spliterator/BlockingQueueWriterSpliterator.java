@@ -19,14 +19,13 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator.QueueWrapper;
 
-import java.util.Spliterator;
 import java.util.concurrent.BlockingQueue;
 
 public class BlockingQueueWriterSpliterator<T> extends PeekSpliterator<T> {
 	
 	private final BlockingQueue<QueueWrapper<T>> queue;
 	
-	public BlockingQueueWriterSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, BlockingQueue<QueueWrapper<T>> queue) {
+	public BlockingQueueWriterSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, BlockingQueue<QueueWrapper<T>> queue) {
 		super(stream, previousSpliterator, () ->
 				value -> {
 					try {
@@ -39,7 +38,7 @@ public class BlockingQueueWriterSpliterator<T> extends PeekSpliterator<T> {
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new BlockingQueueWriterSpliterator<>(this.stream, spliterator, queue);
 	}
 }

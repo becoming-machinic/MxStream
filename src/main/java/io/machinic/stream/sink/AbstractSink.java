@@ -17,15 +17,14 @@
 package io.machinic.stream.sink;
 
 import io.machinic.stream.MxStream;
-
-import java.util.Spliterator;
+import io.machinic.stream.spliterator.MxSpliterator;
 
 public abstract class AbstractSink<IN> {
 	
 	protected final MxStream<IN> stream;
-	protected final Spliterator<IN> previousSpliterator;
+	protected final MxSpliterator<IN> previousSpliterator;
 	
-	public AbstractSink(MxStream<IN> stream, Spliterator<IN> previousSpliterator) {
+	public AbstractSink(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator) {
 		this.stream = stream;
 		this.previousSpliterator = previousSpliterator;
 		
@@ -43,17 +42,17 @@ public abstract class AbstractSink<IN> {
 		return this.stream.getParallelism();
 	}
 	
-	protected Spliterator<IN> getPreviousSpliterator() {
+	protected MxSpliterator<IN> getPreviousSpliterator() {
 		return previousSpliterator;
 	}
 	
-	protected abstract AbstractSink<IN> split(Spliterator<IN> spliterator);
+	protected abstract AbstractSink<IN> split(MxSpliterator<IN> spliterator);
 	
 	public abstract void forEachRemaining();
 	
 	public AbstractSink<IN> trySplit() {
 		if (this.isParallel()) {
-			Spliterator<IN> spliterator = this.previousSpliterator.trySplit();
+			MxSpliterator<IN> spliterator = this.previousSpliterator.trySplit();
 			if (spliterator != null) {
 				return split(spliterator);
 			}

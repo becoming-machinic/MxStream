@@ -19,7 +19,6 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -28,7 +27,7 @@ public class PeekSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	private final Supplier<Consumer<? super T>> supplier;
 	private final Consumer<? super T> consumer;
 	
-	public PeekSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
+	public PeekSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.consumer = supplier.get();
@@ -50,7 +49,7 @@ public class PeekSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new PeekSpliterator<>(this.stream, spliterator, supplier);
 	}
 }

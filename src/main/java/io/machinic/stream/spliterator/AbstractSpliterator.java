@@ -18,17 +18,13 @@ package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
 
-import java.util.Spliterator;
-
 public abstract class AbstractSpliterator<IN, OUT> implements MxSpliterator<OUT> {
 	
 	protected final MxStream<IN> stream;
-	protected final int characteristics;
 	public final boolean parallel;
 	
 	public AbstractSpliterator(MxStream<IN> stream, boolean parallel) {
 		this.stream = stream;
-		this.characteristics = stream.getCharacteristics();
 		this.parallel = parallel;
 	}
 	
@@ -40,27 +36,14 @@ public abstract class AbstractSpliterator<IN, OUT> implements MxSpliterator<OUT>
 		return this.parallel;
 	}
 	
-	protected abstract Spliterator<OUT> split();
+	protected abstract MxSpliterator<OUT> split();
 	
 	@Override
-	public Spliterator<OUT> trySplit() {
+	public MxSpliterator<OUT> trySplit() {
 		if (this.isParallel()) {
 			return this.split();
 		}
 		return null;
-	}
-	
-	@Override
-	public long estimateSize() {
-		return Long.MAX_VALUE;
-	}
-	
-	@Override
-	public int characteristics() {
-		if (this.isParallel()) {
-			return this.characteristics | (Spliterator.CONCURRENT);
-		}
-		return this.characteristics;
 	}
 	
 	@Override

@@ -19,7 +19,6 @@ package io.machinic.stream.spliterator;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -29,7 +28,7 @@ public class FilteringSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	private final Supplier<Predicate<? super T>> supplier;
 	private final Predicate<? super T> predicate;
 	
-	public FilteringSpliterator(MxStream<T> stream, Spliterator<T> previousSpliterator, Supplier<Predicate<? super T>> supplier) {
+	public FilteringSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, Supplier<Predicate<? super T>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.predicate = supplier.get();
@@ -51,7 +50,7 @@ public class FilteringSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	}
 	
 	@Override
-	public Spliterator<T> split(Spliterator<T> spliterator) {
+	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
 		return new FilteringSpliterator<>(this.stream, spliterator, supplier);
 	}
 	
