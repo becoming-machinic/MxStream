@@ -235,12 +235,23 @@ public interface MxStream<T> {
 	MxStream<T> peek(Supplier<Consumer<? super T>> supplier);
 	
 	/**
-	 * Sorts items in stream using a sliding window to prevent loading all items into memory at one time. Sorting parallel streams will produce approximate results only due to the non-deterministic nature of parallel streams.
+	 * Sorts items in stream using a sliding window to prevent loading all items into memory at one time.
+	 * Sorting parallel streams will produce approximate results only due to the non-deterministic nature of parallel streams.
+	 *
+	 * @param <T> the type of elements in the stream
 	 * @param windowSize maximum number of items that will be compared until pushing the lowest item forward.
 	 * @param comparator the comparator that is used to compare items.
 	 */
 	MxStream<T> sorted(int windowSize, Comparator<? super T> comparator);
 	
+	/**
+	 * Sorts items in stream using a sliding window to prevent loading all items into memory at one time.
+	 * Sorting parallel streams will produce approximate results only due to the non-deterministic nature of parallel streams.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @param windowSize maximum number of items that will be compared until pushing the lowest item forward.
+	 * @param supplier the comparator that is used to compare items. This allows for dynamic comparison logic.
+	 */
 	MxStream<T> sorted(int windowSize, Supplier<Comparator<? super T>> supplier);
 	
 	/**
@@ -284,30 +295,84 @@ public interface MxStream<T> {
 	
 	<R, A> R collect(Collector<? super T, A, R> collector);
 	
+	/**
+	 * Terminate stream with a list of all elements in this stream.
+	 *
+	 * @return a new stream containing the elements from this stream, wrapped in an ArrayList.
+	 */
 	List<T> toList();
 	
+	/**
+	 * Terminate stream with a set of all elements in this stream.
+	 *
+	 * @return a new stream containing the elements from this stream, wrapped in a HashSet.
+	 */
 	Set<T> toSet();
 	
+	/**
+	 * Terminate stream with the number of elements in this stream.
+	 *
+	 * @return the number of elements in this stream.
+	 */
 	long count();
 	
+	/**
+	 * Terminate stream a new standard Java stream containing the elements from this stream.
+	 *
+	 * @return a new stream containing the elements from this stream.
+	 */
 	Stream<T> toStream();
 	
+	/**
+	 * Creates a new pipeline source from the given java stream.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @return a new MxStream containing the elements from the stream
+	 */
 	static <T> MxStream<T> of(Stream<T> stream) {
 		return new PipelineSource.StreamSource<>(stream);
 	}
 	
+	/**
+	 * Creates a new pipeline source from the given iterable, with the specified parallelism level and ExecutorService.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @param iterable an iterable to create a pipeline source from
+	 * @param parallelism the number of threads to use for processing the stream
+	 * @param executorService an ExecutorService to submit tasks to
+	 * @return a new pipeline source containing the elements from the iterable
+	 */
 	static <T> MxStream<T> of(Stream<T> stream, int parallelism, ExecutorService executorService) {
 		return new PipelineSource.StreamSource<>(stream, parallelism, executorService);
 	}
 	
+	/**
+	 * Creates a new pipeline source from the given iterable.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @param iterable an iterable to create a pipeline source from
+	 * @return a new MxStream containing the elements from the stream
+	 */
 	static <T> MxStream<T> of(Iterator<T> iterator) {
 		return new PipelineSource.IteratorSource<>(iterator);
 	}
 	
+	/**
+	 * Creates a new pipeline source from the given BufferedReader. The Buffered reader will be read line by line.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @return a new pipeline source containing the elements from the BufferedReader
+	 */
 	static MxStream<String> of(BufferedReader bufferedReader) {
 		return new PipelineSource.BufferedReaderStream(bufferedReader);
 	}
 	
+	/**
+	 * Creates a new pipeline source from the given BufferedReader.
+	 *
+	 * @param <T> the type of elements in the stream
+	 * @return a new MxStream containing the elements from the stream
+	 */
 	static <T> MxStream<T> of(Iterable<T> iterable) {
 		return new PipelineSource.IteratorSource<>(iterable.spliterator(), false);
 	}

@@ -42,7 +42,6 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	private final CancellableSpliterator<IN> spliterator;
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
 	private volatile StreamException streamException = null;
-	private volatile long shutdownTimeoutMillis = 30000;
 	
 	public PipelineSource(MxSpliterator<IN> spliterator, boolean parallel) {
 		this(spliterator, parallel, ForkJoinPool.getCommonPoolParallelism(), ForkJoinPool.commonPool());
