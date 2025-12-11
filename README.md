@@ -20,7 +20,18 @@ List<String> result = MxStream.of("a", "b", "c")
 System.out.println(result);  // Output: [A, B, C]
 ```
 
-Example: Using batching
+### Example: Using fanOut
+Splits a single threaded stream into a parallel stream. The stream primary thread will focus on processing upstream steps. Downstream processing will be done by additional threads. Like standard java parallel streams the resulting order is non-deterministic.
+``` java
+List<String> result = MxStream.of("a", "b", "c");
+    .fanOut(10, 50);
+    .map(value -> {
+        // Perform some expensive operation
+        return s.toUpperCase();
+    }).toList();
+```
+
+### Example: Using batching
 Batches the elements of the stream into lists of the given size. This operation is the logical opposite of flatMap.
 ``` java
 List<List<String>> result = MxStream.of("a", "b", "c");
@@ -29,7 +40,7 @@ List<List<String>> result = MxStream.of("a", "b", "c");
 System.out.println(result);  // Output: [[a, b], [c]]
 ```
 
-Example: Stream from BufferedReader
+### Example: Stream from BufferedReader
 ```java
 try (BufferedReader bufferedReader = new BufferedReader(new FileReader("example.ndjson"))) {
     // Create a pipeline source from the BufferedReader

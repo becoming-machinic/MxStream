@@ -316,7 +316,15 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 				for (Future<?> future : futures) {
 					try {
 						future.get();
-					} catch (InterruptedException | ExecutionException e) {
+					} catch (ExecutionException e) {
+						if (e.getCause() != null && e.getCause() instanceof StreamException) {
+							if (this.getSource().getException() == null) {
+								this.getSource().setStream((StreamException) e.getCause());
+							}
+						} else {
+							throw new StreamException(String.format("An error occurred while processing a stream: %s", e.getMessage()), e);
+						}
+					} catch (InterruptedException e) {
 						// TODO we likely need to cancel the stream here
 						throw new RuntimeException(e);
 					}
@@ -331,7 +339,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 		} catch (StreamException e) {
 			this.getSource().setStream(e);
 			throw e;
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			StreamException streamException = new StreamException(String.format("An error occurred while processing a stream: %s", e.getMessage()), e);
 			this.getSource().setStream(streamException);
 			throw streamException;

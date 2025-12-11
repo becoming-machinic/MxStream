@@ -82,9 +82,16 @@ public interface MxStream<T> {
 	MxStreamExceptionHandler exceptionHandler();
 	
 	/**
-	 * Begin gracefully stopping this stream.
+	 * Begin gracefully stopping this stream. This will be done by shutting down the source and allowing events in the stream to complete processing.
 	 */
 	void stop();
+	
+	/**
+	 * Closes the stream and handles any necessary cleanup to release resources. Processing will be aborted which can result in a non-deterministic state.
+	 *
+	 * Throws an Exception if an error occurs during the closure process.
+	 */
+	void close() throws Exception;
 	
 	/**
 	 * Filters the elements of the stream using the given predicate.

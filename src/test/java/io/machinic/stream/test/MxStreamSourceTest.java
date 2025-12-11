@@ -96,6 +96,6 @@ public class MxStreamSourceTest {
 			MxStream.of(new ErrorTestIterator<>(INTEGER_LIST_A))
 					.toList();
 		});
-		Assertions.assertEquals("An error occurred while processing a stream: Iterator has thrown an exception", exception.getMessage());
+		Assertions.assertEquals("An error occurred while processing a stream. Caused by Iterator has thrown an exception", exception.getMessage());
 	}
 }

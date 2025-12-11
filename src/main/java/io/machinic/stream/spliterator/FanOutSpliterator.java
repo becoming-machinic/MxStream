@@ -17,9 +17,12 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamException;
+import io.machinic.stream.StreamInterruptedException;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
@@ -32,23 +35,28 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		this.queue = new ArrayBlockingQueue<>(bufferSize);
 	}
 	
+	protected boolean isDone() {
+		return this.done;
+	}
+	
 	@Override
 	public boolean tryAdvance(Consumer<? super T> action) {
-		if (this.previousSpliterator.tryAdvance(value -> {
-			if (!queue.offer(new Wrapper(value))) {
-				action.accept(value);
-			}
-		})) {
-			return true;
-		} else {
-			Wrapper wrapper = queue.poll();
-			if (wrapper != null) {
-				action.accept(wrapper.getValue());
-				return true;
-			}
-			this.done = true;
-			return false;
-		}
+		boolean advance = true;
+		do {
+			advance = this.previousSpliterator.tryAdvance(value -> {
+				try {
+					do {
+						if (queue.offer(new Wrapper(value), 100, TimeUnit.MILLISECONDS)) {
+							break;
+						}
+					} while (!done);
+				} catch (InterruptedException e) {
+					this.close();
+				}
+			});
+		} while (!done && advance);
+		this.done = true;
+		return false;
 	}
 	
 	@Override
@@ -74,6 +82,12 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		}
 	}
 	
+	@Override
+	public void close() {
+		this.done = true;
+		this.queue.clear();
+	}
+	
 	public class FanOutSecondarySpliterator implements MxSpliterator<T> {
 		
 		private final FanOutSpliterator<T> parent;
@@ -84,12 +98,22 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		
 		@Override
 		public boolean tryAdvance(Consumer<? super T> action) {
-			Wrapper wrapper = parent.queue.poll();
-			if (wrapper != null) {
-				action.accept(wrapper.getValue());
-				return true;
+			Wrapper wrapper = null;
+			try {
+				do {
+					wrapper = parent.queue.poll(100, TimeUnit.MILLISECONDS);
+					if (wrapper != null) {
+						action.accept(wrapper.getValue());
+					}
+				} while (wrapper != null || !parent.done);
+			} catch (StreamException e) {
+				throw e;
+			} catch (RuntimeException e) {
+				parent.getStream().exceptionHandler().onException(e, (wrapper != null ? wrapper.getValue() : null));
+			} catch (InterruptedException e) {
+				throw new StreamInterruptedException("FanOutSpliterator was interrupted");
 			}
-			return !parent.done;
+			return false;
 		}
 		
 		@Override
@@ -99,7 +123,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		
 		@Override
 		public void close() {
-		
+			parent.close();
 		}
 	}
 }

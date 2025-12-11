@@ -27,12 +27,14 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_B;
 import static io.machinic.stream.test.TestData.NOOP_EXCEPTION_HANDLER;
 
-@Execution(ExecutionMode.SAME_THREAD)
+@Execution(ExecutionMode.CONCURRENT)
 public class MxStreamFanOutTest {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(MxStreamFanOutTest.class);
@@ -41,6 +43,23 @@ public class MxStreamFanOutTest {
 	void setUp(TestInfo testInfo) {
 		LOG.info("test started: {}", testInfo.getDisplayName());
 	}
+	
+	@Test
+	public void fanOutEmptyInputTest() {
+		Assertions.assertEquals(List.of(),
+				MxStream.of(List.of())
+						.fanOut(2, 100)
+						.toList());
+	}
+	
+	@Test
+	public void fanOutSingleElementInputTest() {
+		Assertions.assertEquals(List.of(0),
+				MxStream.of(List.of(0))
+						.fanOut(2, 100)
+						.toList());
+	}
+
 	
 	@Test
 	public void fanOutSmallBufferTest() {
@@ -64,6 +83,20 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
+	public void fanOutWithSlowDownstreamTest() {
+		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
+				.fanOut(10, 50)
+				.peek(value -> {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				})
+				.toSet());
+	}
+	
+	@Test
 	public void fanOutPeekDefaultExceptionHandler() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
 			MxStream.of(INTEGER_LIST_A)
@@ -73,6 +106,18 @@ public class MxStreamFanOutTest {
 					}).toList();
 		});
 		Assertions.assertEquals("Stream failed with unhandled exception: peek operation exception", exception.getMessage());
+	}
+	
+	@Test
+	public void fanOutPeekInterruptException() {
+		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
+			MxStream.of(INTEGER_LIST_A)
+					.fanOut(2, 5)
+					.peek(value -> {
+						Thread.currentThread().interrupt();
+					}).toList();
+		});
+		Assertions.assertEquals("FanOutSpliterator was interrupted", exception.getMessage());
 	}
 	
 	@Test

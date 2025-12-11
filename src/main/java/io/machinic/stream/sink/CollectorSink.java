@@ -18,6 +18,7 @@ package io.machinic.stream.sink;
 
 import io.machinic.stream.MxCollector;
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamException;
 import io.machinic.stream.spliterator.MxSpliterator;
 
 public class CollectorSink<T, A, R> extends AbstractSink<T> {
@@ -45,10 +46,21 @@ public class CollectorSink<T, A, R> extends AbstractSink<T> {
 			} while (previousSpliterator.tryAdvance(
 					value -> collector.accumulator().accept(container, value)
 			));
+		} catch (StreamException e) {
+			try {
+				stream.close();
+			} catch (Exception ex) {
+				// NOOP
+			}
+			throw e;
 		} catch (RuntimeException e) {
 			// if something fails stop the source to wind down the stream
-			stream.stop();
-			throw e;
+			try {
+				stream.close();
+			} catch (Exception ex) {
+				// NOOP
+			}
+			throw new StreamException(String.format("An error occurred while processing a stream. Caused by %s", e.getMessage()), e);
 		}
 	}
 	
