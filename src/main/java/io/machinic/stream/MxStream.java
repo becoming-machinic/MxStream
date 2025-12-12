@@ -245,9 +245,10 @@ public interface MxStream<T> {
 	 * Sorts items in stream using a sliding window to prevent loading all items into memory at one time.
 	 * Sorting parallel streams will produce approximate results only due to the non-deterministic nature of parallel streams.
 	 *
-	 * @param <T> the type of elements in the stream
-	 * @param windowSize maximum number of items that will be compared until pushing the lowest item forward.
-	 * @param comparator the comparator that is used to compare items.
+	 * @param windowSize The size of the window to consider when sorting elements.
+	 * @param comparator A comparator to use for sorting elements. Must be a supertype of {@link Comparator}.
+	 *
+	 * @return A new MxStream instance with sorted elements.
 	 */
 	MxStream<T> sorted(int windowSize, Comparator<? super T> comparator);
 	
@@ -255,9 +256,9 @@ public interface MxStream<T> {
 	 * Sorts items in stream using a sliding window to prevent loading all items into memory at one time.
 	 * Sorting parallel streams will produce approximate results only due to the non-deterministic nature of parallel streams.
 	 *
-	 * @param <T> the type of elements in the stream
-	 * @param windowSize maximum number of items that will be compared until pushing the lowest item forward.
-	 * @param supplier the comparator that is used to compare items. This allows for dynamic comparison logic.
+	 * @param windowSize The size of the sliding window used for sorting. Must be greater than 0.
+	 * @param supplier A supplier function that returns a comparator instance, which is used to define the sort order.
+	 * @return A new MxStream instance containing elements in sorted order.
 	 */
 	MxStream<T> sorted(int windowSize, Supplier<Comparator<? super T>> supplier);
 	
@@ -331,23 +332,27 @@ public interface MxStream<T> {
 	Stream<T> toStream();
 	
 	/**
-	 * Creates a new pipeline source from the given java stream.
+	 * Creates a new instance of the MxStream class from the given input {@link java.util.stream.Stream}.
 	 *
-	 * @param <T> the type of elements in the stream
-	 * @return a new MxStream containing the elements from the stream
+	 * @param <T> The type of elements in the Stream.
+	 * @param stream The Stream object to create the MxStream from.
+	 * @return A new MxStream instance, wrapping the original Stream object.
 	 */
 	static <T> MxStream<T> of(Stream<T> stream) {
 		return new PipelineSource.StreamSource<>(stream);
 	}
 	
 	/**
-	 * Creates a new pipeline source from the given iterable, with the specified parallelism level and ExecutorService.
+	 * Creates a new instance of the MxStream class from the given input {@link java.util.stream.Stream}.
 	 *
-	 * @param <T> the type of elements in the stream
-	 * @param iterable an iterable to create a pipeline source from
-	 * @param parallelism the number of threads to use for processing the stream
-	 * @param executorService an ExecutorService to submit tasks to
-	 * @return a new pipeline source containing the elements from the iterable
+	 * @param <T> The type of elements in the input stream.
+	 *
+	 * @param stream        The input stream to read data from. This stream is wrapped by the MxStream instance and can be closed when no longer needed.
+	 * @param parallelism   The degree of parallelism to use for processing elements from the stream. Higher values result in more simultaneous processing, but may consume more resources
+	 * .
+	 * @param executorService The ExecutorService to use for executing tasks. This service is responsible for managing threads that process elements from the stream.
+	 *
+	 * @return A new instance of the MxStream class wrapping the given input stream and configured with the specified parallelism and executor service.
 	 */
 	static <T> MxStream<T> of(Stream<T> stream, int parallelism, ExecutorService executorService) {
 		return new PipelineSource.StreamSource<>(stream, parallelism, executorService);
@@ -357,7 +362,7 @@ public interface MxStream<T> {
 	 * Creates a new pipeline source from the given iterable.
 	 *
 	 * @param <T> the type of elements in the stream
-	 * @param iterable an iterable to create a pipeline source from
+	 * @param iterator an iterable to create a pipeline source from
 	 * @return a new MxStream containing the elements from the stream
 	 */
 	static <T> MxStream<T> of(Iterator<T> iterator) {
@@ -365,11 +370,11 @@ public interface MxStream<T> {
 	}
 	
 	/**
-	 * Creates a new pipeline source from the given BufferedReader. The Buffered reader will be read line by line.
+	 * Creates an MxStream from a {@link java.io.BufferedReader}. The BufferedReader will be read line by line and each line will be passed into the stream.
 	 *
-	 * @param <T> the type of elements in the stream
-	 * @return a new pipeline source containing the elements from the BufferedReader
-	 */
+	 * @param bufferedReader The buffered reader to read from.
+	 *
+	 * @return A pipeline source that reads from the specified buffered reader.*/
 	static MxStream<String> of(BufferedReader bufferedReader) {
 		return new PipelineSource.BufferedReaderStream(bufferedReader);
 	}
