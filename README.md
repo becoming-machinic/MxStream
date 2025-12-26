@@ -9,6 +9,9 @@ MxStream is a Java Stream library that provides enhanced functionality beyond th
 - **Sorting**: Sort items in a sliding window to control memory usage.
 
 ## **Using MxStream**
+
+Get it from [Maven Central](https://mvnrepository.com/artifact/io.machinic/mxstreams/latest)
+
 ### Example: Using asyncMap
 The asyncMap function runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
 ``` java
