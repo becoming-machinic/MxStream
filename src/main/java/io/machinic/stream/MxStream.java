@@ -115,6 +115,14 @@ public interface MxStream<T> {
 	MxStream<T> skip(long n);
 	
 	/**
+	 * Limits the number of elements returned by the stream to the specified value.
+	 *
+	 * @param n the maximum number of elements to return
+	 * @return a new MxStream containing at most n occurrences of type T
+	 */
+	MxStream<T> limit(long n);
+	
+	/**
 	 * Capture metrics from this point in stream
 	 * @param streamMetricSupplier the metrics supplier that will be used to collect stream metrics
 	 * @return a new stream with the mapped elements

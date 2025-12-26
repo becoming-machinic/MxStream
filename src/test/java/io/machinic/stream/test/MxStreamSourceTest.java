@@ -37,7 +37,7 @@ import static io.machinic.stream.test.TestData.INTEGER_SET_A;
 import static io.machinic.stream.test.TestData.STRING_A;
 import static io.machinic.stream.test.TestData.STRING_LIST_A;
 
-@Execution(ExecutionMode.SAME_THREAD)
+@Execution(ExecutionMode.CONCURRENT)
 public class MxStreamSourceTest {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(MxStreamSourceTest.class);
@@ -88,6 +88,18 @@ public class MxStreamSourceTest {
 	public void sourceBufferedReaderTest() {
 		BufferedReader bufferedReader = new BufferedReader(new StringReader(STRING_A));
 		Assertions.assertEquals(STRING_LIST_A, MxStream.of(bufferedReader).toList());
+	}
+	
+	@Test
+	public void sourceBufferedReaderTestWithSkip() {
+		BufferedReader bufferedReader = new BufferedReader(new StringReader(STRING_A));
+		Assertions.assertEquals(STRING_LIST_A.stream().skip(1).toList(), MxStream.of(bufferedReader).skip(1).toList());
+	}
+	
+	@Test
+	public void sourceBufferedReaderTestWithLimit() {
+		BufferedReader bufferedReader = new BufferedReader(new StringReader(STRING_A));
+		Assertions.assertEquals(STRING_LIST_A.stream().limit(2).toList(), MxStream.of(bufferedReader).limit(2).toList());
 	}
 	
 	@Test

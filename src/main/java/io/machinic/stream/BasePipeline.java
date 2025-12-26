@@ -127,6 +127,19 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
+	public MxStream<OUT> limit(final long n) {
+		Require.equalOrGreater(n, 1, "n");
+		AtomicLong count = new AtomicLong();
+		return filter(value -> {
+			if (count.incrementAndGet() <= n) {
+				return true;
+			}
+			this.stop();
+			return false;
+		});
+	}
+	
+	@Override
 	public MxStream<OUT> metrics(StreamMetricSupplier streamMetricSupplier) {
 		Objects.requireNonNull(streamMetricSupplier);
 		return new Pipeline<>(this.getSource(), this, new StreamMetricSpliterator<>(this, this.getSpliterator(), streamMetricSupplier));
