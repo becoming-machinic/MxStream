@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.StreamEventException;
+import io.machinic.stream.MxStreamFunction;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.StreamInterruptedException;
+import io.machinic.stream.concurrent.MapFutureTask;
 import io.machinic.stream.metrics.AsyncMapMetric;
 import io.machinic.stream.metrics.AsyncMapMetricSupplier;
 import org.slf4j.Logger;
@@ -27,111 +28,115 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
 	
-	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
-	private final Function<? super IN, ? extends OUT> mapper;
+	private final Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier;
+	private final MxStreamFunction<? super IN, ? extends OUT> mapper;
 	private final int parallelism;
+	private final long asyncTimeoutMillis;
+	private final ExecutorService providedExecutorService;
 	private final ExecutorService executorService;
 	private final AsyncMapMetricSupplier metricSupplier;
 	private final AsyncMapMetric metric;
-	private final Queue<Future<TaskResult>> queue;
+	private final Queue<MapFutureTask<IN, OUT>> queue;
 	private boolean started;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
 		this.parallelism = parallelism;
-		this.executorService = executorService;
+		this.asyncTimeoutMillis = asyncTimeoutMillis;
+		this.providedExecutorService = executorService;
+		this.executorService = (providedExecutorService != null ? providedExecutorService : Executors.newVirtualThreadPerTaskExecutor());
 		this.metricSupplier = metricSupplier;
 		this.metric = (metricSupplier != null ? metricSupplier.get() : null);
+		// the queue does not need to be thread-safe as it is only accessed by the stream thread
 		this.queue = new ArrayDeque<>(parallelism + 2);
 	}
 	
-	private TaskCallable createTask(IN input) {
-		return new TaskCallable(input);
+	private void enqueue(MapFutureTask<IN, OUT> mapFutureTask) {
+		try {
+			this.executorService.submit(mapFutureTask);
+			if (!queue.offer(mapFutureTask)) {
+				throw new StreamException("Failed to enqueue task. Queue is full");
+			}
+		} catch (RejectedExecutionException e) {
+			throw new StreamException("Failed to enqueue task. Caused by RejectedExecutionException", e);
+		} catch (StreamException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new StreamException(String.format("Failed to enqueue task. Caused by %s", e.getMessage()), e);
+		}
 	}
 	
-	private void enqueue(TaskCallable taskCallable) {
-		queue.add(this.executorService.submit(taskCallable));
+	private void dequeue(Consumer<? super OUT> action, boolean drain) throws StreamException {
+		MapFutureTask<IN, OUT> futureTask = queue.peek();
+		if (futureTask != null) {
+			if (futureTask.isDone() || this.getQueueSize() >= parallelism || drain) {
+				try {
+					// Check and clear the interrupted status
+					if (Thread.interrupted()) {
+						throw new StreamInterruptedException("Stream has been interrupted");
+					}
+					long startTimestamp = System.nanoTime();
+					try {
+						if (futureTask.await(this.asyncTimeoutMillis, TimeUnit.MILLISECONDS)) {
+							// Task is in a done state, we can safely dequeue the task
+							queue.poll();
+							if (futureTask.getException() == null) {
+								action.accept(futureTask.getOutput());
+							} else {
+								try {
+									getStream().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
+								} catch (StreamException e) {
+									throw e;
+								} catch (Exception e) {
+									throw new StreamException(String.format("asyncMap failed. Caused by %s", e.getMessage()), e);
+								}
+							}
+							
+							if (metric != null) {
+								metric.onEvent(futureTask.getDuration());
+							}
+						} else {
+							// Task will be canceled, we can safely dequeue the task
+							queue.poll();
+							futureTask.cancel(true);
+							getStream().exceptionHandler().onException(new StreamInterruptedException("asyncMap has been interrupted"), futureTask.getInput());
+						}
+					} catch (InterruptedException e) {
+						throw new StreamInterruptedException("Stream has been interrupted");
+					} finally {
+						if (metric != null) {
+							long endTimestamp = System.nanoTime();
+							metric.onWait(endTimestamp - startTimestamp);
+						}
+					}
+					
+				} catch (StreamException e) {
+					while ((futureTask = queue.poll()) != null) {
+						futureTask.cancel(true);
+					}
+					throw e;
+				} catch (Exception e) {
+					throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
+				}
+			}
+		}
 	}
 	
 	private int getQueueSize() {
 		return queue.size();
-	}
-	
-	private boolean peekNext() {
-		Future<TaskResult> future = queue.peek();
-		return future != null && future.isDone();
-	}
-	
-	private TaskResult getNext() throws ExecutionException, InterruptedException {
-		// Check interrupted status before pulling item from queue
-		if (Thread.interrupted()) {
-			throw new InterruptedException();
-		}
-		
-		Future<TaskResult> nextFuture = queue.poll();
-		if (nextFuture != null) {
-			if (metric != null) {
-				long startTimestamp = System.nanoTime();
-				try {
-					return nextFuture.get();
-				} catch (InterruptedException e) {
-					// cancel task that has already been removed form queue
-					nextFuture.cancel(true);
-					throw e;
-				} finally {
-					metric.onWait(System.nanoTime() - startTimestamp);
-				}
-			} else {
-				try {
-					return nextFuture.get();
-				} catch (InterruptedException e) {
-					// cancel task that has already been removed form queue
-					nextFuture.cancel(true);
-					throw e;
-				}
-			}
-		}
-		return null;
-	}
-	
-	private void dequeue(Consumer<? super OUT> action, boolean drain) {
-		if (peekNext() || this.getQueueSize() >= parallelism || drain) {
-			try {
-				TaskResult result = getNext();
-				if (result != null) {
-					if (metric != null) {
-						metric.onEvent(result.duration);
-					}
-					action.accept(result.output);
-				}
-			} catch (InterruptedException e) {
-				throw new StreamInterruptedException("Stream was interrupted. Events will be canceled and stream will be terminated.", e);
-			} catch (ExecutionException e) {
-				if (e.getCause() != null && e.getCause() instanceof StreamEventException) {
-					logger.debug("asyncMap operation skipping message due to caught exception {}", e.getCause().getMessage());
-				} else if (e.getCause() != null && e.getCause() instanceof StreamException) {
-					throw (StreamException) e.getCause();
-				} else {
-					throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
-				}
-			} catch (Exception e) {
-				throw new StreamException(String.format("mapAsync failed. Caused by %s", e.getMessage()), e);
-			}
-		}
 	}
 	
 	@Override
@@ -145,7 +150,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		do {
 			canAdvance = this.previousSpliterator.tryAdvance(value ->
 			{
-				this.enqueue(this.createTask(value));
+				this.enqueue(new MapFutureTask<IN, OUT>(this.mapper, value));
 				dequeue(action, false);
 			});
 		} while (canAdvance && this.getQueueSize() <= parallelism);
@@ -161,7 +166,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
-		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, executorService, metricSupplier, supplier);
+		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, asyncTimeoutMillis, this.providedExecutorService, metricSupplier, supplier);
 	}
 	
 	@Override
@@ -169,44 +174,16 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 		if (this.metric != null) {
 			this.metric.onStop();
 		}
-		this.queue.forEach(task -> {
-			try {
-				task.cancel(true);
-			} catch (Exception e) {
-				logger.warn("Event failed while draining event queue. Caused by {}", e.getMessage());
-			}
-		});
-	}
-	
-	private class TaskCallable implements Callable<TaskResult> {
-		private final IN input;
 		
-		private TaskCallable(IN input) {
-			this.input = input;
+		// shutdown self-created executor service
+		if(this.providedExecutorService == null && this.executorService != null) {
+			this.executorService.shutdown();
 		}
 		
-		@Override
-		public TaskResult call() {
-			long startTimestamp = System.nanoTime();
-			try {
-				return new TaskResult(mapper.apply(input), startTimestamp);
-			} catch (StreamException e) {
-				throw e;
-			} catch (Exception e) {
-				getStream().exceptionHandler().onException(e, input);
-				throw new StreamEventException(input, String.format("Event %s failed. Caused by %s", input, e.getMessage()), e);
-			}
+		MapFutureTask<IN, OUT> futureTask;
+		while ((futureTask = queue.poll()) != null) {
+			futureTask.cancel(true);
 		}
-	}
-	
-	private class TaskResult {
 		
-		private final OUT output;
-		private final long duration;
-		
-		private TaskResult(OUT output, long startTimestamp) {
-			this.output = output;
-			this.duration = Math.abs(System.nanoTime() - startTimestamp);
-		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ public class MxStreamPatternsTest {
 					.count();
 		});
 		// since stream is a newSingleThreadExecutor it should cancel all tasks after the interrupt
-		Assertions.assertTrue(99 <= highestValue.get() &&  highestValue.get() <= 101);
+		Assertions.assertTrue(99 <= highestValue.get() && highestValue.get() <= 101);
 	}
 	
 	@Test
@@ -138,27 +138,20 @@ public class MxStreamPatternsTest {
 	
 	@Test
 	public void chainedAsyncMapTest() {
+		int recordCount = 500;
 		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
-		long count = MxStream.of(new IntegerGeneratorIterator(500))
+		long count = MxStream.of(new IntegerGeneratorIterator(recordCount))
 				.asyncMap(100, ForkJoinPool.commonPool(),
 						metricSupplier,
 						integer -> {
-							try {
-								// slow task
-								Thread.sleep(10);
-							} catch (InterruptedException e) {
-								throw new RuntimeException(e);
-							}
+							// slow task
+							Thread.sleep(10);
 							return integer;
 						})
 				.asyncMap(50, ForkJoinPool.commonPool(),
 						integer -> {
-							try {
-								// slow task
-								Thread.sleep(ThreadLocalRandom.current().nextInt(10));
-							} catch (InterruptedException e) {
-								throw new RuntimeException(e);
-							}
+							// slow task
+							Thread.sleep(ThreadLocalRandom.current().nextInt(10));
 							return integer;
 						})
 				.batch(100, 20, TimeUnit.MILLISECONDS)
@@ -166,7 +159,7 @@ public class MxStreamPatternsTest {
 						batch -> batch)
 				.flatMap(Collection::stream)
 				.count();
-		Assertions.assertEquals(500, count);
+		Assertions.assertEquals(recordCount, count);
 		System.out.println("Duration: " + metricSupplier.getDuration());
 		System.out.println("Total Duration: " + metricSupplier.getTotalDuration());
 		System.out.println("Wait Duration: " + metricSupplier.getWaitDuration());

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	private final int parallelism;
 	private final ExecutorService executorService;
 	private final CancellableSpliterator<IN> spliterator;
+	private long asyncTimeoutMillis = Long.MAX_VALUE;
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
 	private volatile StreamException streamException = null;
 	
@@ -85,6 +86,14 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	
 	public int getParallelism() {
 		return this.parallelism;
+	}
+	
+	protected void setAsyncTimeoutMillis(long asyncTimeoutMillis) {
+		this.asyncTimeoutMillis = asyncTimeoutMillis;
+	}
+	
+	public long getAsyncTimeoutMillis() {
+		return asyncTimeoutMillis;
 	}
 	
 	public PipelineSource<IN> exceptionHandler(MxStreamExceptionHandler exceptionHandler) {

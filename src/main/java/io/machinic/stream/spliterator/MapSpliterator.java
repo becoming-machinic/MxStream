@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,18 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.StreamException;
+import io.machinic.stream.MxStreamFunction;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class MapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
-	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
-	private final Function<? super IN, ? extends OUT> mapper;
+	private final Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier;
+	private final MxStreamFunction<? super IN, ? extends OUT> mapper;
 	
-	public MapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+	public MapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = Objects.requireNonNull(supplier);
 		this.mapper = supplier.get();
@@ -40,8 +39,6 @@ public class MapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT>
 		return this.previousSpliterator.tryAdvance(value -> {
 			try {
 				action.accept(mapper.apply(value));
-			} catch (StreamException e) {
-				throw e;
 			} catch (Exception e) {
 				stream.exceptionHandler().onException(e, value);
 			}

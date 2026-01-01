@@ -16,21 +16,12 @@
 
 package io.machinic.stream;
 
-public class StreamEventException extends StreamException {
-	
-	private final Object event;
-	
-	public StreamEventException(Object event, String message) {
+public class StreamTimeoutException extends StreamException {
+	public StreamTimeoutException(String message) {
 		super(message);
-		this.event = event;
 	}
 	
-	public StreamEventException(Object event, String message, Throwable cause) {
+	public StreamTimeoutException(String message, Throwable cause) {
 		super(message, cause);
-		this.event = event;
-	}
-	
-	public Object getEvent() {
-		return event;
 	}
 }
