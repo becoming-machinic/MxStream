@@ -22,7 +22,7 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface MxStreamFunction<T, R> {
     
-    R apply(T t) throws InterruptedException, StreamException, Exception;
+    R apply(T t) throws InterruptedException, StreamException;
 
 
     default <V> MxStreamFunction<V, R> compose(MxStreamFunction<? super V, ? extends T> before) throws InterruptedException, StreamException {
