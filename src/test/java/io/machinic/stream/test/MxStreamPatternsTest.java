@@ -145,13 +145,21 @@ public class MxStreamPatternsTest {
 						metricSupplier,
 						integer -> {
 							// slow task
-							Thread.sleep(10);
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								throw new StreamInterruptedException(e);
+							}
 							return integer;
 						})
 				.asyncMap(50, ForkJoinPool.commonPool(),
 						integer -> {
 							// slow task
-							Thread.sleep(ThreadLocalRandom.current().nextInt(10));
+							try {
+								Thread.sleep(ThreadLocalRandom.current().nextInt(10));
+							} catch (InterruptedException e) {
+								throw new StreamInterruptedException(e);
+							}
 							return integer;
 						})
 				.batch(100, 20, TimeUnit.MILLISECONDS)

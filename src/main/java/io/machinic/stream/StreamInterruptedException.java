@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,11 @@
 package io.machinic.stream;
 
 public class StreamInterruptedException extends StreamException {
+	
+	public StreamInterruptedException(InterruptedException cause) {
+		super("Stream operation interrupted", cause);
+	}
+	
 	public StreamInterruptedException(String message) {
 		super(message);
 	}

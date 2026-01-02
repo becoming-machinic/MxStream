@@ -16,7 +16,6 @@
 
 package io.machinic.stream.concurrent;
 
-import io.machinic.stream.MxStreamFunction;
 import io.machinic.stream.StreamInterruptedException;
 
 import java.lang.invoke.MethodHandles;
@@ -26,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 public class MapFutureTask<IN, OUT> implements RunnableFuture<OUT> {
 	
@@ -53,7 +53,7 @@ public class MapFutureTask<IN, OUT> implements RunnableFuture<OUT> {
 	private volatile Thread runner;
 	private volatile int state = PENDING;
 	
-	private final MxStreamFunction<? super IN, ? extends OUT> mapper;
+	private final Function<? super IN, ? extends OUT> mapper;
 	private final IN input;
 	
 	private final long scheduleNanoTime = System.nanoTime();
@@ -63,7 +63,7 @@ public class MapFutureTask<IN, OUT> implements RunnableFuture<OUT> {
 	private volatile OUT output;
 	private volatile Exception exception;
 	
-	public MapFutureTask(MxStreamFunction<? super IN, ? extends OUT> mapper, IN input) {
+	public MapFutureTask(Function<? super IN, ? extends OUT> mapper, IN input) {
 		this.mapper = mapper;
 		this.input = input;
 	}
@@ -89,7 +89,7 @@ public class MapFutureTask<IN, OUT> implements RunnableFuture<OUT> {
 				STATE.set(this, DONE);
 			} catch (Exception e) {
 				this.exception = e;
-				if (e instanceof InterruptedException || e instanceof StreamInterruptedException) {
+				if (e instanceof StreamInterruptedException) {
 					STATE.set(this, CANCELED);
 				} else {
 					STATE.set(this, FAILED);

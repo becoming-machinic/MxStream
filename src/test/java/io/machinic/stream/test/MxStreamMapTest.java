@@ -17,7 +17,6 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.MxStreamFunction;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.test.utils.CountingSupplier;
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +27,8 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Function;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.NOOP_EXCEPTION_HANDLER;
@@ -61,7 +62,7 @@ public class MxStreamMapTest {
 	
 	@Test
 	public void mapSupplierTest() {
-		CountingSupplier<MxStreamFunction<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
+		CountingSupplier<Function<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
 		Assertions.assertEquals(STRING_LIST_A, MxStream.of(INTEGER_LIST_A).map(supplier).toList());
 		// Supplier should only be called once on a sequential stream
 		Assertions.assertEquals(1, supplier.getCount());
@@ -69,7 +70,7 @@ public class MxStreamMapTest {
 	
 	@Test
 	public void mapParallelSupplierTest() {
-		CountingSupplier<MxStreamFunction<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
+		CountingSupplier<Function<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
 		Assertions.assertEquals(STRING_SET_A, MxStream.of(INTEGER_LIST_A)
 				.fanOut(3, 2)
 				.map(supplier)

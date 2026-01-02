@@ -17,18 +17,18 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.MxStreamFunction;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class MapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
-	private final Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier;
-	private final MxStreamFunction<? super IN, ? extends OUT> mapper;
+	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
+	private final Function<? super IN, ? extends OUT> mapper;
 	
-	public MapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier) {
+	public MapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = Objects.requireNonNull(supplier);
 		this.mapper = supplier.get();

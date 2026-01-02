@@ -17,9 +17,9 @@
 package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.MxStreamFunction;
 import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.test.utils.CountingSupplier;
 import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.NOOP_EXCEPTION_HANDLER;
@@ -117,7 +118,7 @@ public class MxStreamAsyncMapTest {
 	
 	@Test
 	public void mapSupplierTest() {
-		CountingSupplier<MxStreamFunction<? super Integer, ? extends String>> supplier =
+		CountingSupplier<Function<? super Integer, ? extends String>> supplier =
 				new CountingSupplier<>(integer ->
 						Integer.toString(integer)
 				);
@@ -128,7 +129,7 @@ public class MxStreamAsyncMapTest {
 	
 	@Test
 	public void mapParallelSupplierTest() {
-		CountingSupplier<MxStreamFunction<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
+		CountingSupplier<Function<? super Integer, ? extends String>> supplier = new CountingSupplier<>(integer -> Integer.toString(integer));
 		Assertions.assertEquals(STRING_SET_A,
 				MxStream.of(INTEGER_LIST_A)
 						.fanOut(3, 2)
@@ -195,7 +196,11 @@ public class MxStreamAsyncMapTest {
 					.asyncMap(2, integer -> {
 						if (integer % 2 != 0) {
 							// simulate stalled task
-							Thread.sleep(99999);
+							try {
+								Thread.sleep(99999);
+							} catch (InterruptedException e) {
+								throw new StreamInterruptedException(e);
+							}
 						}
 						return Integer.toString(integer);
 					}).toSet();
@@ -210,7 +215,11 @@ public class MxStreamAsyncMapTest {
 					.asyncMap(2, 100L, integer -> {
 						if (integer % 2 != 0) {
 							// simulate stalled task
-							Thread.sleep(99999);
+							try {
+								Thread.sleep(99999);
+							} catch (InterruptedException e) {
+								throw new StreamInterruptedException(e);
+							}
 						}
 						return Integer.toString(integer);
 					}).toSet();
@@ -227,7 +236,11 @@ public class MxStreamAsyncMapTest {
 						.asyncMap(2, integer -> {
 							if (integer % 2 != 0) {
 								// simulate stalled task
-								Thread.sleep(99999);
+								try {
+									Thread.sleep(99999);
+								} catch (InterruptedException e) {
+									throw new StreamInterruptedException(e);
+								}
 							}
 							return Integer.toString(integer);
 						}).toSet());

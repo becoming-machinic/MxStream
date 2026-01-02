@@ -149,7 +149,7 @@ public interface MxStream<T> {
 	 * @param <R> the type of the result elements
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> map(MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> map(Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Maps the elements of the stream using the function provided by teh supplier.
@@ -157,7 +157,7 @@ public interface MxStream<T> {
 	 * @param <R> the type of the result elements
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> map(Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> map(Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Flat maps the elements of the stream using the given function.
@@ -182,7 +182,7 @@ public interface MxStream<T> {
 	 * @param <R> the type of the result elements
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function provided by the supplier and the default ExecutorService. The asyncMap operation will maintain stream order.
@@ -192,7 +192,7 @@ public interface MxStream<T> {
 	 * @param mapper              a function that maps each element in the stream to an object of type R, or throws an exception if the mapping fails
 	 * @return a new stream containing the mapped values
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function provided by the supplier and the default ExecutorService. The asyncMap operation will maintain stream order.
@@ -201,7 +201,7 @@ public interface MxStream<T> {
 	 * @param <R> the type of the result elements
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -212,7 +212,7 @@ public interface MxStream<T> {
 	 *
 	 * @return A new stream that has been mapped asynchronously using the provided function.
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -222,7 +222,7 @@ public interface MxStream<T> {
 	 * @param executorService the executor service to submit tasks to
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -233,7 +233,7 @@ public interface MxStream<T> {
 	 * @param mapper a function that takes an element and returns a transformed element
 	 * @return a stream of transformed elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -244,7 +244,7 @@ public interface MxStream<T> {
 	 * @param metricSupplier the metricSupplier will store captured metrics
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -256,7 +256,7 @@ public interface MxStream<T> {
 	 * @param mapper the function to apply to each element of the stream
 	 * @return an MxStream of mapped values
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, MxStreamFunction<? super T, ? extends R> mapper);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -266,7 +266,7 @@ public interface MxStream<T> {
 	 * @param executorService the executor service to submit tasks to
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -277,7 +277,7 @@ public interface MxStream<T> {
 	 * @param supplier a function that takes an element and returns a new value of type R
 	 * @return a stream containing the results of applying the given supplier to each element in this stream
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -288,7 +288,7 @@ public interface MxStream<T> {
 	 * @param metricSupplier the metricSupplier will store captured metrics
 	 * @return a new stream with the mapped elements
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function and ExecutorService provided. The asyncMap operation will maintain stream order.
@@ -300,7 +300,7 @@ public interface MxStream<T> {
 	 * @param supplier A function that is applied to each result of the asynchronous operations to produce the final result.
 	 * @return A MxStream object that emits the mapped results as they become available.
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Batches the elements of the stream into lists of the given size. This operation is the logical opposite of flatMap.

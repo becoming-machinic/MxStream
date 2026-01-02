@@ -155,13 +155,13 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> map(MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> map(Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.map(() -> mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> map(Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> map(Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		return new Pipeline<>(this.getSource(), this, new MapSpliterator<>(this, this.getSpliterator(), supplier));
 	}
@@ -179,69 +179,69 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, null, mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, asyncTimeoutMillis, null, mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		return this.asyncMap(parallelism, null, supplier);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, null, () -> mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, asyncTimeoutMillis, executorService, null, () -> mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, metricSupplier, () -> mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, MxStreamFunction<? super OUT, ? extends R> mapper) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super OUT, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, asyncTimeoutMillis, executorService, metricSupplier, () -> mapper);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		return this.asyncMap(parallelism, asyncTimeoutMillis, null, null, supplier);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, null, supplier);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		return this.asyncMap(parallelism, asyncTimeoutMillis, executorService, null, supplier);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, metricSupplier, supplier);
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		Require.equalOrGreater(parallelism, 1, "parallelism");
 		Require.equalOrGreater(asyncTimeoutMillis, 1, "asyncTimeoutMillis");

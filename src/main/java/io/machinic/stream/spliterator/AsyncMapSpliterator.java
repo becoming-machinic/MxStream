@@ -17,7 +17,6 @@
 package io.machinic.stream.spliterator;
 
 import io.machinic.stream.MxStream;
-import io.machinic.stream.MxStreamFunction;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.concurrent.MapFutureTask;
@@ -33,14 +32,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
 	
-	private final Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier;
-	private final MxStreamFunction<? super IN, ? extends OUT> mapper;
+	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
+	private final Function<? super IN, ? extends OUT> mapper;
 	private final int parallelism;
 	private final long asyncTimeoutMillis;
 	private final ExecutorService providedExecutorService;
@@ -50,7 +50,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	private final Queue<MapFutureTask<IN, OUT>> queue;
 	private boolean started;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<MxStreamFunction<? super IN, ? extends OUT>> supplier) {
+	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
