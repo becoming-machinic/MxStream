@@ -352,16 +352,20 @@ public interface MxStream<T> {
 	MxStream<T> sorted(int windowSize, Supplier<Comparator<? super T>> supplier);
 	
 	/**
-	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing. Parallel streams will process items in a non-deterministic order.
-	 * @param parallelism the number of additional threads that will be used to process stream.
-	 * @param bufferSize size of the buffer between main thread and additional threads
+	 * Convert this stream into a Producer/Consumer pattern with a single threaded producer that produces events into an ArrayBlockingQueue.
+	 * One or more consumer threads will read from the ArrayBlockingQueue and process the remaining steps of this stream.
+	 * If the stream is already parallel, this does nothing. Parallel streams will process items in a non-deterministic order.
+	 * @param parallelism the number of consumer threads that will process items from the buffer.
+	 * @param bufferSize size of the ArrayBlockingQueue between the producer and consumer(s).
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize);
 	
 	/**
-	 * FanOut converts a single threaded stream to a parallel stream at this point in the stream. If the stream is already parallel this does nothing. Parallel streams will process items in a non-deterministic order.
-	 * @param parallelism the number of additional threads that will be used to process stream.
-	 * @param bufferSize size of the buffer between main thread and additional threads
+	 * Convert this stream into a Producer/Consumer pattern with a single threaded producer that produces events into an ArrayBlockingQueue.
+	 * One or more consumer threads will read from the ArrayBlockingQueue and process the remaining steps of this stream.
+	 * If the stream is already parallel, this does nothing. Parallel streams will process items in a non-deterministic order.
+	 * @param parallelism the number of consumer threads that will process items from the buffer.
+	 * @param bufferSize size of the ArrayBlockingQueue between the producer and consumer(s).
 	 * @param executorService executorService that parallel tasks are submitted to
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);

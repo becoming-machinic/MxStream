@@ -16,25 +16,10 @@
 
 package io.machinic.stream.concurrent;
 
-import java.util.function.Function;
-
-public final class MapFutureTask<IN, OUT> extends AbstractCallableTask<OUT> {
-	
-	private final Function<? super IN, ? extends OUT> mapper;
-	private final IN input;
-	
-	public MapFutureTask(Function<? super IN, ? extends OUT> mapper, IN input) {
-		this.mapper = mapper;
-		this.input = input;
-	}
-	
-	@Override
-	public OUT callTask() {
-		return this.mapper.apply(this.input);
-	}
-	
-	public IN getInput() {
-		return input;
-	}
-	
+public final class TaskStatus {
+	public static final int PENDING = 4;
+	public static final int CANCELED = 3;
+	public static final int RUNNING = 2;
+	public static final int FAILED = 1;
+	public static final int DONE = 0;
 }

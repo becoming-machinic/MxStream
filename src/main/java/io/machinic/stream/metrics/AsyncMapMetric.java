@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ public class AsyncMapMetric {
 	private volatile long startTimestamp = 0L;
 	private volatile long endTimestamp = 0L;
 	private final AtomicLong atomicCounter = new AtomicLong();
+	private final AtomicLong pendingDuration = new AtomicLong();
 	private final AtomicLong taskDuration = new AtomicLong();
 	private final AtomicLong waitDuration = new AtomicLong();
 	
@@ -31,7 +32,7 @@ public class AsyncMapMetric {
 		this.startTimestamp = System.currentTimeMillis();
 	}
 	
-	public void onEvent(long taskDuration) {
+	public void onEvent(long pendingDuration, long taskDuration) {
 		atomicCounter.incrementAndGet();
 		this.taskDuration.addAndGet(taskDuration);
 	}
@@ -54,6 +55,10 @@ public class AsyncMapMetric {
 			return System.currentTimeMillis() - startTimestamp;
 		}
 		return endTime - startTimestamp;
+	}
+	
+	public long getTaskPendingDuration() {
+		return TimeUnit.NANOSECONDS.toMillis(pendingDuration.get());
 	}
 	
 	public long getTaskDuration() {

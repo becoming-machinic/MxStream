@@ -94,7 +94,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 							// Task is in a done state, we can safely dequeue the task
 							queue.poll();
 							if (futureTask.getException() == null) {
-								action.accept(futureTask.getOutput());
+								action.accept(futureTask.getResult());
 							} else {
 								try {
 									getStream().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
@@ -106,9 +106,10 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 							}
 							
 							if (metric != null) {
-								metric.onEvent(futureTask.getDuration());
+								metric.onEvent(futureTask.getPendingDuration(), futureTask.getDuration());
 							}
 						} else {
+							logger.warn("asyncMap task timed out, cancelling task for {}", futureTask.getInput());
 							// Task will be canceled, we can safely dequeue the task
 							queue.poll();
 							futureTask.cancel(true);

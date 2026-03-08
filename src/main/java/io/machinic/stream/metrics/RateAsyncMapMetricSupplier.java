@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ package io.machinic.stream.metrics;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * RateAsyncMapMetricSupplier is a supplier that generates AsyncMapMetric objects.
+ * It maintains a list of all metrics generated and provides various statistics about them.
+ */
 public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	private final CopyOnWriteArrayList<AsyncMapMetric> asyncMapMetrics = new CopyOnWriteArrayList<>();
 	
@@ -35,7 +39,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	
 	/**
 	 * Get the clock duration of the time spent processing all item
-	 * @return the total duration
+	 * @return the total duration in milliseconds
 	 */
 	public long getDuration() {
 		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getDuration).sum();
@@ -53,8 +57,17 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	}
 	
 	/**
+	 * Returns the total duration that tasks spent pending in the queue before it started.
+	 *
+	 * @return The total duration of all pending tasks in milliseconds
+	 */
+	public long getTotalPendingDuration() {
+		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getTaskPendingDuration).sum();
+	}
+	
+	/**
 	 * Get the total duration of the time spent processing all items
-	 * @return total duration
+	 * @return total duration in milliseconds
 	 */
 	public long getTotalDuration() {
 		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getTaskDuration).sum();

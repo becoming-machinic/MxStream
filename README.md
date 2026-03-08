@@ -24,7 +24,9 @@ System.out.println(result);  // Output: [A, B, C]
 ```
 
 ### Example: Using fanOut
-Splits a single threaded stream into a parallel stream. The stream primary thread will focus on processing upstream steps. Downstream processing will be done by additional threads. Like standard java parallel streams the resulting order is non-deterministic.
+Convert this stream into a Producer/Consumer pattern with a single threaded producer that produces events into an ArrayBlockingQueue.
+One or more consumer threads will read from the ArrayBlockingQueue and process the remaining steps of this stream.
+If the stream is already parallel, this does nothing. Parallel streams will process items in a non-deterministic order.
 ``` java
 List<String> result = MxStream.of("a", "b", "c");
     .fanOut(10, 50);
