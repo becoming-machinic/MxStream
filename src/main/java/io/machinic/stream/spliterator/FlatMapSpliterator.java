@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
 		return this.previousSpliterator.tryAdvance(value -> {
-			try {
-				mapper.apply(value).forEachOrdered(action);
+			try(Stream<? extends OUT> stream = mapper.apply(value)) {
+				stream.forEachOrdered(action);
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
