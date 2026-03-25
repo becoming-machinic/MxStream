@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,30 @@ public class MxStreamWindowedSortTest {
 		Assertions.assertEquals(INTEGER_LIST_A,
 				MxStream.of(testData)
 						.sorted(50, Comparator.naturalOrder())
+						.toList());
+	}
+	
+	@Test
+	public void sortSmallWindowTest() {
+		List<Integer> testData = new ArrayList<>(INTEGER_LIST_A);
+		testData = testData.reversed();  // reverse is the worst case
+		
+		Assertions.assertEquals(List.of(8, 7, 6, 5, 4, 3, 2, 1, 9, 10),
+				MxStream.of(testData)
+						.sorted(3, Comparator.naturalOrder())
+						.toList());
+	}
+	
+	@Test
+	public void sortSmallFlatMap() {
+		List<Integer> testData = new ArrayList<>(INTEGER_LIST_A);
+		testData = testData.reversed();  // reverse is the worst case
+		
+		List<Integer> finalTestData = testData;
+		Assertions.assertEquals(List.of(8, 7, 6, 5, 4, 3, 2, 1, 9, 10),
+				MxStream.of(List.of("thing"))
+						.flatMap(record -> finalTestData.stream())
+						.sorted(3, Comparator.naturalOrder())
 						.toList());
 	}
 	

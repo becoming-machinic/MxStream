@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,11 +42,12 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 		this.queue.add(value);
 	}
 	
-	protected T dequeueWhenFull() {
+	protected boolean dequeueWhenFull(Consumer<? super T> action) {
 		if (queue.size() >= windowSize) {
-			return this.queue.poll();
+			action.accept(this.queue.poll());
+			return true;
 		}
-		return null;
+		return false;
 	}
 	
 	protected T dequeue() {
@@ -64,11 +65,10 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 				} else {
 					enqueue(value);
 				}
+				dequeueWhenFull(action);
 			})) {
-				// advanced
-				T value = dequeueWhenFull();
-				if (value != null) {
-					action.accept(value);
+				// advance until window is filled
+				if(dequeueWhenFull(action)) {
 					return true;
 				}
 			} else {
