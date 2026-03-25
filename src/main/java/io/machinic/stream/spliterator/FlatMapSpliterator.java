@@ -38,8 +38,14 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
 		return this.previousSpliterator.tryAdvance(value -> {
-			try(Stream<? extends OUT> stream = mapper.apply(value)) {
-				stream.forEachOrdered(action);
+			try {
+				// Use verbose code to make debugging easier
+				try(Stream<? extends OUT> stream = mapper.apply(value)) {
+					stream.forEachOrdered(entry -> {
+						//noinspection FunctionalExpressionCanBeFolded
+						action.accept(entry);
+					});
+				}
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
