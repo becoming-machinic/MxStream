@@ -46,12 +46,16 @@ public interface MxStream<T> {
 	
 	/**
 	 * Indicates if this is a parallel stream.
+	 * This method can be used to determine whether the stream will be processed concurrently by multiple threads.
+	 *
 	 * @return true if the stream is parallel, false otherwise
 	 */
 	boolean isParallel();
 	
 	/**
 	 * Returns the parallelism level of the stream.
+	 * The number of tasks to process at one time. Higher values result in more simultaneous processing but may consume more resources.
+	 *
 	 * @return the parallelism level
 	 */
 	int getParallelism();
@@ -65,25 +69,32 @@ public interface MxStream<T> {
 	
 	/**
 	 * Sets the default timeout in milliseconds for an asynchronous operation on this stream.
+	 * This method can be used to configure the maximum amount of time that an asynchronous operation will take before it is canceled.
 	 *
-	 * @param timeoutMillis the maximum time, in milliseconds, that the operation may take
+	 * @param timeoutMillis The default timeout in milliseconds
 	 */
 	MxStream<T> asyncTimeoutMillis(long timeoutMillis);
 	
 	/**
 	 * Indicates if the stream is closed.
+	 * This method can be used to check whether the stream has reached its end or has been manually stopped.
+	 *
 	 * @return true if the stream is closed, false otherwise
 	 */
 	boolean isClosed();
 	
 	/**
 	 * Returns the exception encountered during stream processing, if any.
-	 * @return the exception encountered, or else null
+	 * If an error occurs while processing a stream, this method will return the corresponding exception.
+	 *
+	 * @return the exception encountered, or null if no exception occurred
 	 */
 	StreamException getException();
 	
 	/**
 	 * Sets the exception handler for the stream.
+	 * This method can be used to configure how exceptions are handled when they occur during stream processing.
+	 *
 	 * @param exceptionHandler the exception handler
 	 * @return a new stream with the mapped elements
 	 */
@@ -91,24 +102,30 @@ public interface MxStream<T> {
 	
 	/**
 	 * Returns the exception handler for the stream.
+	 * This method can be used to check the current exception handling configuration of the stream.
+	 *
 	 * @return the exception handler
 	 */
 	MxStreamExceptionHandler exceptionHandler();
 	
 	/**
 	 * Begin gracefully stopping this stream. This will be done by shutting down the source and allowing events in the stream to complete processing.
+	 * Note that this method will not cancel any ongoing operations but rather simply stop new events from being added to the stream.
 	 */
 	void stop();
 	
 	/**
 	 * Closes the stream and handles any necessary cleanup to release resources. Processing will be aborted which can result in a non-deterministic state.
+	 * Note that this method is not the same as stopping the stream, but rather explicitly terminating the stream and releasing its resources.
 	 *
-	 * Throws an Exception if an error occurs during the closure process.
+	 * @throws Exception if an error occurs during closure
 	 */
 	void close() throws Exception;
 	
 	/**
 	 * Filters the elements of the stream using the given predicate.
+	 * This method can be used to remove certain elements from the stream based on their properties or values.
+	 *
 	 * @param predicate the predicate to apply to each element
 	 * @return a new stream with the mapped elements
 	 */
@@ -116,13 +133,17 @@ public interface MxStream<T> {
 	
 	/**
 	 * Filters the elements of the stream using the predicate provided by the supplier.
+	 * This method is similar to `filter` but uses a separate function to generate the predicate, allowing for more flexibility in filtering logic.
+	 *
 	 * @param supplier the supplier providing the predicate
 	 * @return a new stream with the mapped elements
 	 */
 	MxStream<T> filter(Supplier<Predicate<? super T>> supplier);
 	
 	/**
-	 * Skips the fist n elements of teh stream.
+	 * Skips the fist n elements of the stream.
+	 * This method can be used to remove certain initial elements from the stream, allowing for more control over processing order.
+	 *
 	 * @param n the number of elements to skip
 	 * @return a new stream with the mapped elements
 	 */
@@ -130,6 +151,7 @@ public interface MxStream<T> {
 	
 	/**
 	 * Limits the number of elements returned by the stream to the specified value.
+	 * This method can be used to truncate the stream at a certain point, allowing for more control over processing size.
 	 *
 	 * @param n the maximum number of elements to return
 	 * @return a new MxStream containing at most n occurrences of type T
@@ -137,7 +159,9 @@ public interface MxStream<T> {
 	MxStream<T> limit(long n);
 	
 	/**
-	 * Capture metrics from this point in stream
+	 * Capture metrics from this point in stream.
+	 * This method can be used to track performance and other metrics for processing operations.
+	 *
 	 * @param streamMetricSupplier the metrics supplier that will be used to collect stream metrics
 	 * @return a new stream with the mapped elements
 	 */
