@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ public class MxStreamFlatMapTest {
 	@Test
 	public void flatMapCustomExceptionHandler() {
 		Assertions.assertEquals(INTEGER_LIST_B, MxStream.of(INTEGER_LIST_C).exceptionHandler(NOOP_EXCEPTION_HANDLER).flatMap(list -> {
-			if (list.get(0) % 2 != 0) {
+			if (list.getFirst() % 2 != 0) {
 				throw new RuntimeException("flatMap operation exception");
 			}
 			return list.stream();
@@ -128,10 +128,38 @@ public class MxStreamFlatMapTest {
 		Assertions.assertEquals(INTEGER_SET_B, MxStream.of(INTEGER_LIST_C).exceptionHandler(NOOP_EXCEPTION_HANDLER)
 				.fanOut(4, 2)
 				.flatMap(list -> {
-					if (list.get(0) % 2 != 0) {
+					if (list.getFirst() % 2 != 0) {
 						throw new RuntimeException("flatMap operation exception");
 					}
 					return list.stream();
 				}).toSet());
+	}
+	
+	@Test
+	public void flatMapProducerTest() {
+		Assertions.assertEquals(INTEGER_LIST_A,
+				MxStream.of(List.of("1, 2, 3, 4, 5, 6, 7, 8, 9, 10"))
+						.flatMapProducer((value, consumer) -> {
+							try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+								stream.map(val -> Integer.parseInt(val))
+										.forEachOrdered(consumer);
+							}
+						})
+						.toList()
+		);
+	}
+	
+	@Test
+	public void flatMapProducerSupplierTest() {
+		Assertions.assertEquals(INTEGER_LIST_A,
+				MxStream.of(List.of("1, 2, 3, 4, 5, 6, 7, 8, 9, 10"))
+						.flatMapProducer(() -> (value, consumer) -> {
+							try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+								stream.map(val -> Integer.parseInt(val))
+										.forEachOrdered(consumer);
+							}
+						})
+						.toList()
+		);
 	}
 }

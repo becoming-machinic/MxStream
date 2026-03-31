@@ -169,11 +169,23 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	@Override
 	public <R> MxStream<R> flatMap(Function<? super OUT, ? extends Stream<? extends R>> mapper) {
 		Objects.requireNonNull(mapper);
-		return this.flatMap(() -> mapper);
+		return this.flatMapProducer(() -> FlatMapProducerFunction.wrap(mapper));
 	}
 	
 	@Override
 	public <R> MxStream<R> flatMap(Supplier<Function<? super OUT, ? extends Stream<? extends R>>> supplier) {
+		Objects.requireNonNull(supplier);
+		return this.flatMapProducer(() -> FlatMapProducerFunction.wrap(supplier.get()));
+	}
+	
+	@Override
+	public <R> MxStream<R> flatMapProducer(FlatMapProducerFunction<? super OUT, ? extends R> mapper) {
+		Objects.requireNonNull(mapper);
+		return this.flatMapProducer(() -> mapper);
+	}
+	
+	@Override
+	public <R> MxStream<R> flatMapProducer(Supplier<FlatMapProducerFunction<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		return new Pipeline<>(this.getSource(), this, new FlatMapSpliterator<>(this, this.getSpliterator(), supplier));
 	}

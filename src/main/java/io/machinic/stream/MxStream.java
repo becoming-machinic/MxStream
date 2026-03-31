@@ -163,7 +163,7 @@ public interface MxStream<T> {
 	 * Flat maps the elements of the stream using the given function.
 	 * @param mapper the function to apply to each element
 	 * @param <R> the type of the result elements
-	 * @return a new stream with the flat mapped elements
+	 * @return a new stream with the flat-mapped elements
 	 */
 	<R> MxStream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
 	
@@ -171,9 +171,57 @@ public interface MxStream<T> {
 	 * Flat maps the elements of the stream using the function provided by the supplier.
 	 * @param supplier the supplier providing the function
 	 * @param <R> the type of the result elements
-	 * @return a new stream with the flat mapped elements
+	 * @return a new stream with the flat-mapped elements
 	 */
 	<R> MxStream<R> flatMap(Supplier<Function<? super T, ? extends Stream<? extends R>>> supplier);
+	
+	/**
+	 * Converts a single element into zero or more elements like the flatMap method but gives the caller much more control over the process.
+	 * This method is preferable in situations where the stream needs additional considerations, such as opening a transaction.
+	 * </br>
+	 * This is a very simple example of what an implementation could look like.
+	 * <pre>
+	 * {@code
+	 * .flatMapProducer((value, consumer) -> {
+	 *	  // Do something before stream
+	 *	  try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+	 *	    stream.forEachOrdered(consumer);
+	 *    } finally {
+	 *	    // do something after stream
+	 *    }
+	 *  })
+	 * }
+	 * </pre>
+	 *
+	 * @param <R> The type of the elements in the output stream.
+	 * @param mapper A {@link io.machinic.stream.FlatMapProducerFunction} that takes an element, converts it to a stream, and calls the consumer for each.
+	 * @return A pipeline that can be used to process data from an input stream.
+	 */
+	<R> MxStream<R> flatMapProducer(FlatMapProducerFunction<? super T, ? extends R> mapper);
+	
+	/**
+	 * Converts a single element into zero or more elements like the flatMap method but gives the caller much more control over the process.
+	 * This method is preferable in situations where the stream needs additional considerations, such as opening a transaction.
+	 * </br>
+	 * This is a very simple example of what an implementation could look like.
+	 * <pre>
+	 * {@code
+	 * .flatMapProducer(() -> (value, consumer) -> {
+	 *	  // Do something before stream
+	 *	  try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+	 *	    stream.forEachOrdered(consumer);
+	 *    } finally {
+	 *	    // do something after stream
+	 *    }
+	 *  })
+	 * }
+	 * </pre>
+	 *
+	 * @param <R> The type of the elements in the output stream.
+	 * @param supplier A supplier that provides a {@link io.machinic.stream.FlatMapProducerFunction} that takes an element, converts it to a stream, and calls the consumer for each.
+	 * @return A pipeline that can be used to process data from an input stream.
+	 */
+	 <R> MxStream<R> flatMapProducer(Supplier<FlatMapProducerFunction<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Runs the map operation asynchronously using the function provided and the default ExecutorService. The asyncMap operation will maintain stream order.

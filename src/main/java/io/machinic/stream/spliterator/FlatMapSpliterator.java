@@ -16,20 +16,23 @@
 
 package io.machinic.stream.spliterator;
 
+import io.machinic.stream.FlatMapProducerFunction;
 import io.machinic.stream.MxStream;
+import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT> {
+	private static final Logger logger = LoggerFactory.getLogger(FlatMapSpliterator.class);
 	
-	private final Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier;
-	private final Function<? super IN, ? extends Stream<? extends OUT>> mapper;
+	private final Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier;
+	private final FlatMapProducerFunction<? super IN, ? extends OUT> mapper;
 	
-	public FlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends Stream<? extends OUT>>> supplier) {
+	public FlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
@@ -39,13 +42,9 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	public boolean tryAdvance(Consumer<? super OUT> action) {
 		return this.previousSpliterator.tryAdvance(value -> {
 			try {
-				// Use verbose code to make debugging easier
-				try(Stream<? extends OUT> stream = mapper.apply(value)) {
-					stream.forEachOrdered(entry -> {
-						//noinspection FunctionalExpressionCanBeFolded
-						action.accept(entry);
-					});
-				}
+				mapper.apply(value, action);
+			} catch (StreamEventException e) {
+				logger.info("Ignoring StreamEventException: {}", e.getMessage(), e);
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
