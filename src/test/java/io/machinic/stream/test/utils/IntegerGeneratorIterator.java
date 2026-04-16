@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,11 @@
 package io.machinic.stream.test.utils;
 
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class IntegerGeneratorIterator implements Iterator<Integer> {
 	
@@ -36,5 +40,9 @@ public class IntegerGeneratorIterator implements Iterator<Integer> {
 	@Override
 	public Integer next() {
 		return counter.getAndIncrement();
+	}
+	
+	public Stream<Integer> toStream() {
+		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, Spliterator.ORDERED), false);
 	}
 }

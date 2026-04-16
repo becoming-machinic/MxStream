@@ -118,7 +118,7 @@ public abstract class AbstractCallableTask<OUT> implements RunnableFuture<OUT> {
 	
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		if(this.compareAndSetState(TaskStatus.PENDING, TaskStatus.CANCELED)) {
+		if (this.compareAndSetState(TaskStatus.PENDING, TaskStatus.CANCELED)) {
 			return true;
 		}
 		
@@ -141,7 +141,7 @@ public abstract class AbstractCallableTask<OUT> implements RunnableFuture<OUT> {
 	
 	@Override
 	public boolean isDone() {
-		return taskLatch.getCount() == 0;
+		return taskLatch.getCount() <= 0;
 	}
 	
 	public void await() throws InterruptedException {

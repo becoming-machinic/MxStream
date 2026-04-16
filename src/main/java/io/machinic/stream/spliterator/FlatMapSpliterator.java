@@ -30,19 +30,17 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	private static final Logger logger = LoggerFactory.getLogger(FlatMapSpliterator.class);
 	
 	private final Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier;
-	private final FlatMapProducerFunction<? super IN, ? extends OUT> mapper;
 	
 	public FlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier) {
 		super(stream, previousSpliterator);
 		this.supplier = supplier;
-		this.mapper = supplier.get();
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
 		return this.previousSpliterator.tryAdvance(value -> {
 			try {
-				mapper.apply(value, action);
+				supplier.get().apply(value, action);
 			} catch (StreamEventException e) {
 				logger.info("Ignoring StreamEventException: {}", e.getMessage(), e);
 			} catch (StreamException e) {

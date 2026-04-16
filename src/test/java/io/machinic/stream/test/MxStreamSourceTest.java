@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,4 +110,19 @@ public class MxStreamSourceTest {
 		});
 		Assertions.assertEquals("An error occurred while processing a stream. Caused by Iterator has thrown an exception", exception.getMessage());
 	}
+	
+	@Test
+	public void sourceStreamExceptionTest() {
+		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
+			MxStream.of(INTEGER_LIST_A.stream()
+							.peek(value -> {
+								if (value == 2) {
+									throw new RuntimeException("Error on 2");
+								}
+							}))
+					.toList();
+		});
+		Assertions.assertEquals("An error occurred while processing a stream. Caused by Error on 2", exception.getMessage());
+	}
+	
 }

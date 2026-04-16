@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
+import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
@@ -59,7 +61,6 @@ public class MxStreamFanOutTest {
 						.fanOut(2, 100)
 						.toList());
 	}
-
 	
 	@Test
 	public void fanOutSmallBufferTest() {
@@ -94,6 +95,31 @@ public class MxStreamFanOutTest {
 					}
 				})
 				.toSet());
+	}
+	
+	@Test
+	public void fanOutWithAsyncMapTest() {
+		
+		Assertions.assertEquals(
+				100L, MxStream.of(new IntegerGeneratorIterator(100).toStream()).fanOut(1, 50).asyncMap(10, value -> {
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							return Integer.toString(value);
+						})
+						.batch(10, 500, TimeUnit.MILLISECONDS)
+						.asyncMap(10, batch -> {
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								throw new RuntimeException(e);
+							}
+							return batch;
+						})
+						.flatMap(batch -> batch.stream())
+						.count());
 	}
 	
 	@Test

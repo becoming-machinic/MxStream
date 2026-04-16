@@ -16,9 +16,11 @@
 
 package io.machinic.stream.test;
 
+import io.machinic.stream.FlatMapProducerFunction;
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.test.utils.CountingSupplier;
+import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -77,7 +80,7 @@ public class MxStreamFlatMapTest {
 		CountingSupplier<Function<? super List<Integer>, ? extends Stream<? extends Integer>>> supplier = new CountingSupplier<>(Collection::stream);
 		Assertions.assertEquals(INTEGER_LIST_A, MxStream.of(INTEGER_LIST_C).flatMap(supplier).toList());
 		// Supplier should only be called once on a sequential stream
-		Assertions.assertEquals(1, supplier.getCount());
+		Assertions.assertEquals(10, supplier.getCount());
 	}
 	
 	@Test
@@ -88,7 +91,7 @@ public class MxStreamFlatMapTest {
 						.fanOut(3, 2)
 						.flatMap(supplier).toSet());
 		// Supplier should be called once by the main thread and once for each additional thread
-		Assertions.assertEquals(4, supplier.getCount());
+		Assertions.assertEquals(10, supplier.getCount());
 	}
 	
 	@Test
@@ -162,4 +165,107 @@ public class MxStreamFlatMapTest {
 						.toList()
 		);
 	}
+	
+	@Test
+	public void asyncFlatMapTest1() {
+		Assertions.assertEquals("0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9",
+				String.join(",",
+						MxStream.of(INTEGER_LIST_A)
+								.asyncFlatMap(1, 5, value -> new IntegerGeneratorIterator(value).toStream())
+								.sorted(500, Comparator.naturalOrder())
+								.asyncMap(10, integer -> Integer.toString(integer))
+								.toList()));
+	}
+	
+	@Test
+	public void asyncFlatMapTest2() {
+		Assertions.assertEquals("0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9",
+				String.join(",",
+						MxStream.of(INTEGER_LIST_A)
+								.asyncFlatMap(1, 100, value -> new IntegerGeneratorIterator(value).toStream())
+								.sorted(500, Comparator.naturalOrder())
+								.asyncMap(10, integer -> Integer.toString(integer))
+								.toList()));
+	}
+	
+	@Test
+	public void asyncFlatMapTest3() {
+		Assertions.assertEquals("0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9",
+				String.join(",",
+						MxStream.of(INTEGER_LIST_A)
+								.asyncFlatMap(20, 10, value -> new IntegerGeneratorIterator(value).toStream())
+								.sorted(500, Comparator.naturalOrder())
+								.asyncMap(10, integer -> Integer.toString(integer))
+								.toList()));
+	}
+	
+	@Test
+	public void asyncFlatMapProducerTest() {
+		FlatMapProducerFunction<Integer, Integer> flatMapProducerFunction = (value, consumer) -> {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+			new IntegerGeneratorIterator(value).toStream()
+					.forEachOrdered(consumer);
+		};
+		
+		Assertions.assertEquals("0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9",
+				String.join(",",
+						MxStream.of(INTEGER_LIST_A)
+								.asyncFlatMapProducer(20, 10, flatMapProducerFunction)
+								.sorted(500, Comparator.naturalOrder())
+								.asyncMap(10, integer -> {
+									try {
+										Thread.sleep(10);
+									} catch (InterruptedException e) {
+										throw new RuntimeException(e);
+									}
+									return Integer.toString(integer);
+								})
+								.toList()));
+	}
+	
+	@Test
+	public void asyncFlatMapErrorTest() {
+		FlatMapProducerFunction<Integer, Integer> flatMapProducerFunction = (value, consumer) -> {
+			if (value == 6) {
+				throw new RuntimeException("FlatMapError");
+			}
+			new IntegerGeneratorIterator(value).toStream()
+					.forEachOrdered(consumer);
+		};
+		
+		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
+			MxStream.of(INTEGER_LIST_A)
+					.asyncFlatMapProducer(20, 10, flatMapProducerFunction)
+					.sorted(500, Comparator.naturalOrder())
+					.asyncMap(10, integer -> {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+						return Integer.toString(integer);
+					})
+					.toList();
+		});
+		Assertions.assertEquals("Stream failed with unhandled exception: FlatMapError", exception.getMessage());
+	}
+	
+	@Test
+	public void asyncFlatMapProducerSupplierSingleTest() {
+		Assertions.assertEquals(INTEGER_LIST_A,
+				MxStream.of(List.of("1, 2, 3, 4, 5, 6, 7, 8, 9, 10"))
+						.asyncFlatMapProducer(1, 5, 1000000, null, null, () -> (value, consumer) -> {
+							try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+								stream.map(val -> Integer.parseInt(val))
+										.forEachOrdered(consumer);
+							}
+						})
+						.toList()
+		);
+	}
+	
 }

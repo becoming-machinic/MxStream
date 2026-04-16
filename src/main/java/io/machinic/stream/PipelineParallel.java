@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ public class PipelineParallel<IN, OUT> extends Pipeline<IN, OUT> {
 	public PipelineParallel(PipelineSource<?> source, BasePipeline<?, IN> previous, int parallelism, ExecutorService executorService, AbstractChainedSpliterator<IN, OUT> spliterator) {
 		super(source, previous, spliterator);
 		this.parallelism = parallelism;
-		this.executorService = executorService;
+		this.executorService = (executorService != null ? executorService : previous.getExecutorService());
 	}
 	
 	protected ExecutorService getExecutorService() {
