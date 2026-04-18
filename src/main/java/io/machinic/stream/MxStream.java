@@ -187,7 +187,7 @@ public interface MxStream<T> {
 	/**
 	 * Converts a single element into zero or more elements like the flatMap method but gives the caller much more control over the process. This method is preferable in situations where the stream needs additional considerations, such as opening a
 	 * transaction.
-	 * </br>
+	 * <br/>
 	 * This is a very simple example of what an implementation could look like.
 	 * <pre>
 	 * {@code
@@ -213,7 +213,7 @@ public interface MxStream<T> {
 	/**
 	 * Converts a single element into zero or more elements like the flatMap method but gives the caller much more control over the process. This method is preferable in situations where the stream needs additional considerations, such as opening a
 	 * transaction.
-	 * </br>
+	 * <br/>
 	 * This is a very simple example of what an implementation could look like.
 	 * <pre>
 	 * {@code
@@ -248,11 +248,10 @@ public interface MxStream<T> {
 	
 	/**
 	 * Applies a flat map operation asynchronously with the specified parallelism and buffer size, using a function to transform each element into a stream, and returns a new MxStream
-	 * <R>.
 	 * @param parallelism The number of concurrent tasks to run.
 	 * @param bufferSize The size of the buffer used for collecting results from parallel tasks.
 	 * @param function A Function that takes an element of type T and returns a Stream of type R.
-	 * @return A new MxStream<R> resulting from applying the flat map operation asynchronously.
+	 * @return A new MxStream resulting from applying the flat map operation asynchronously.
 	 */
 	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, Function<? super T, ? extends Stream<? extends R>> function) {
 		return this.asyncFlatMapProducer(parallelism, bufferSize, this.getAsyncTimeoutMillis(), null, null, FlatMapProducerFunction.wrap(function));
@@ -400,7 +399,7 @@ public interface MxStream<T> {
 	 * @param asyncTimeoutMillis The maximum time in milliseconds to wait for each asynchronous operation to complete before timing out.
 	 * @param executorService The ExecutorService to use for executing the flat map operations asynchronously.
 	 * @param supplier A Supplier that provides a Function to be applied to each element of the stream, which returns a Stream. The result is then flattened into the resulting stream.
-	 * @return A new MxStream<R> representing the result of the async flat map operation.
+	 * @return A new MxStream representing the result of the async flat map operation.
 	 */
 	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, Supplier<Function<? super T, ? extends Stream<? extends R>>> supplier) {
 		Objects.requireNonNull(supplier);
@@ -465,7 +464,7 @@ public interface MxStream<T> {
 	 * @param executorService the ExecutorService to use for executing tasks.
 	 * @param metricSupplier a supplier for creating AsyncMapMetric instances to track metrics during the flat map operation.
 	 * @param supplier a supplier of functions that will be applied to each element of this stream to produce a new stream of elements (must not be null).
-	 * @return a new MxStream<R> resulting from applying the async flat map operation.
+	 * @return a new MxStream resulting from applying the async flat map operation.
 	 */
 	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends Stream<? extends R>>> supplier) {
 		Objects.requireNonNull(supplier);
