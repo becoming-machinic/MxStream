@@ -7,6 +7,7 @@ MxStream is a Java Stream library that provides enhanced functionality beyond th
 - **Batching**: Batch elements with optional timeouts for efficient processing.
 - **Fan-Out**: Convert single-threaded streams to parallel stream using fanOut.
 - **Sorting**: Sort items in a sliding window to control memory usage.
+- **FlatMap Producer**: Process each element asynchronously and produce multiple results.
 
 ## **Using MxStream**
 
@@ -57,6 +58,21 @@ try (BufferedReader bufferedReader = new BufferedReader(new FileReader("example.
 } catch (Exception e) {
     // Handle any exceptions that may occur while reading from the BufferedReader
 }
+```
+
+### Example: Using flatMapProducer
+The flatMapProducer converts an object to a stream like the standard flatMap operation but gives the stream creator full control. Rather than returning a stream, the callback provides a Consumer that will be called for each element of the stream.
+
+```java
+List<Integer> result = MxStream.of(List.of("1, 2, 3", "4, 5, 6"))
+    .flatMapProducer((value, consumer) -> {
+        try (Stream<String> stream = Stream.of(value.split(", ?"))) {
+            stream.map(val -> Integer.parseInt(val))
+                  .forEachOrdered(consumer);
+        }
+    })
+    .toList();
+System.out.println(result);  // Output: [1, 2, 3, 4, 5, 6]
 ```
 
 By utilizing these features and examples, developers can harness the power of MxStream to improve their stream-based applications.
