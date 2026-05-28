@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,12 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 				batchReference.setPlain(new Batch());
 			}
 		})) {
+			// If batch has expired and isn't empty push it
+			Batch batch = batchReference.getPlain();
+			if (batch.isExpired()) {
+				action.accept(batch.getBatch());
+				batchReference.setPlain(new Batch());
+			}
 			return true;
 		} else {
 			Batch batch = batchReference.getPlain();

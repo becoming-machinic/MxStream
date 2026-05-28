@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,7 +105,8 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 					if (wrapper != null) {
 						action.accept(wrapper.getValue());
 					}
-				} while (wrapper != null || !parent.done);
+				} while (wrapper != null);
+				return !this.parent.isDone();
 			} catch (StreamException e) {
 				throw e;
 			} catch (RuntimeException e) {
