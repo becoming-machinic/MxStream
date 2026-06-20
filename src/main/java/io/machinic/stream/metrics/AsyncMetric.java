@@ -16,12 +16,14 @@
 
 package io.machinic.stream.metrics;
 
-public interface StreamMetricSupplier {
+public interface AsyncMetric {
 	
-	StreamMetric get();
+	void onStart();
 	
-	static StreamMetricSupplier create() {
-		return new RateStreamMetricSupplier();
-	}
+	void onStop();
+	
+	void onEvent(long pendingDurationNanos, long taskDurationNanos);
+	
+	void onWait(long waitDurationNanos);
 	
 }

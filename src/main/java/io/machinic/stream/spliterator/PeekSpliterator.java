@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.StreamException;
 
 import java.util.function.Consumer;
@@ -27,22 +27,22 @@ public class PeekSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	private final Supplier<Consumer<? super T>> supplier;
 	private final Consumer<? super T> consumer;
 	
-	public PeekSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
-		super(stream, previousSpliterator);
+	public PeekSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, Supplier<Consumer<? super T>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.supplier = supplier;
 		this.consumer = supplier.get();
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super T> action) {
-		return this.previousSpliterator.tryAdvance(value -> {
+		return this.getPreviousSpliterator().tryAdvance(value -> {
 			try {
 				this.consumer.accept(value);
 				action.accept(value);
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
+				getPipeline().exceptionHandler().onException(e, value);
 				action.accept(value);
 			}
 		});
@@ -50,6 +50,6 @@ public class PeekSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	@Override
 	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new PeekSpliterator<>(this.stream, spliterator, supplier);
+		return new PeekSpliterator<>(this.getPipeline(), spliterator, supplier);
 	}
 }

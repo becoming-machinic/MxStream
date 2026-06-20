@@ -16,13 +16,13 @@
 
 package io.machinic.stream.spliterator;
 
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.FlatMapProducerFunction;
-import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.concurrent.FlatMapFutureTask;
-import io.machinic.stream.metrics.AsyncMapMetric;
-import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.metrics.AsyncMetric;
+import io.machinic.stream.metrics.AsyncMetricSupplier;
 import io.machinic.stream.util.Wrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,18 +47,17 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 	private final long asyncTimeoutMillis;
 	private final ExecutorService providedExecutorService;
 	private final ExecutorService executorService;
-	private final AsyncMapMetricSupplier metricSupplier;
-	private final AsyncMapMetric metric;
+	private final AsyncMetricSupplier metricSupplier;
+	private final AsyncMetric metric;
 	// This is only accessed by Spliterator thread, so it does not need to be thread safe
 	private final Queue<FlatMapFutureTask<IN, OUT>> queue;
 	private final ArrayBlockingQueue<Wrapper<OUT>> bufferQueue;
-	private final int desiredCapacity;
 	private final Consumer<OUT> advanceMapper;
 	private boolean started;
 	
-	public AsyncFlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier,
+	public AsyncFlatMapSpliterator(BasePipeline<?, IN> pipeline, MxSpliterator<IN> previousSpliterator, int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier,
 			Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier) {
-		super(stream, previousSpliterator);
+		super(pipeline, previousSpliterator);
 		this.supplier = supplier;
 		this.parallelism = parallelism;
 		this.bufferSize = bufferSize;
@@ -70,8 +69,6 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 		// the queue does not need to be thread-safe as it is only accessed by the stream thread
 		this.queue = new ArrayDeque<>(parallelism + 2);
 		this.bufferQueue = new ArrayBlockingQueue<>(bufferSize);
-		
-		this.desiredCapacity = bufferSize / 4;
 		
 		this.advanceMapper = (value) -> {
 			try {
@@ -124,7 +121,7 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 							queue.poll();
 							if (futureTask.getException() != null) {
 								try {
-									getStream().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
+									getPipeline().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
 								} catch (StreamException e) {
 									throw e;
 								} catch (Exception e) {
@@ -140,7 +137,7 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 							// Task will be canceled, we can safely dequeue the task
 							queue.poll();
 							futureTask.cancel(true);
-							getStream().exceptionHandler().onException(new StreamInterruptedException("asyncFlatMap has been interrupted"), futureTask.getInput());
+							getPipeline().exceptionHandler().onException(new StreamInterruptedException("asyncFlatMap has been interrupted"), futureTask.getInput());
 						}
 					} catch (InterruptedException e) {
 						throw new StreamInterruptedException("Stream has been interrupted");
@@ -169,14 +166,9 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
-		if (!started && this.metric != null) {
-			this.metric.onStart();
-			started = true;
-		}
-		
 		boolean canAdvance;
 		do {
-			canAdvance = this.previousSpliterator.tryAdvance(value ->
+			canAdvance = this.getPreviousSpliterator().tryAdvance(value ->
 			{
 				this.enqueue(new FlatMapFutureTask<>(value, this.supplier.get(), this.advanceMapper));
 				this.dequeue(action, false);
@@ -196,14 +188,20 @@ public class AsyncFlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
-		return new AsyncFlatMapSpliterator<>(stream, spliterator, parallelism, bufferSize, asyncTimeoutMillis, this.providedExecutorService, metricSupplier, supplier);
+		return new AsyncFlatMapSpliterator<>(getPipeline(), spliterator, parallelism, bufferSize, asyncTimeoutMillis, this.providedExecutorService, metricSupplier, supplier);
+	}
+	
+	@Override
+	public void onStart() {
+		super.onStart();
+		if (this.metric != null) {
+			this.metric.onStart();
+		}
 	}
 	
 	@Override
 	public void close() {
-		if (this.metric != null) {
-			this.metric.onStop();
-		}
+		super.close();
 		
 		// shutdown self-created executor service
 		if (this.providedExecutorService == null && this.executorService != null) {

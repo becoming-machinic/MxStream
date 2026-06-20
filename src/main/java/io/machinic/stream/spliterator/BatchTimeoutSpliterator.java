@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +31,8 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 	private final long timeout;
 	private final TimeUnit unit;
 	
-	public BatchTimeoutSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int batchSize, long timeout, TimeUnit unit) {
-		super(stream, previousSpliterator);
+	public BatchTimeoutSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, int batchSize, long timeout, TimeUnit unit) {
+		super(pipeline, previousSpliterator);
 		this.batchSize = batchSize;
 		this.timeout = timeout;
 		this.unit = unit;
@@ -44,7 +44,7 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 		// If no batch exists then create one
 		batchReference.compareAndSet(null, new Batch());
 		
-		if (this.previousSpliterator.tryAdvance(value -> {
+		if (this.getPreviousSpliterator().tryAdvance(value -> {
 			Batch batch = batchReference.getPlain();
 			batch.add(value);
 			// Push batch if full or expired
@@ -72,7 +72,7 @@ public class BatchTimeoutSpliterator<T> extends AbstractChainedSpliterator<T, Li
 	
 	@Override
 	public MxSpliterator<List<T>> split(MxSpliterator<T> spliterator) {
-		return new BatchTimeoutSpliterator<>(this.stream, spliterator, batchSize, timeout, unit);
+		return new BatchTimeoutSpliterator<>(this.getPipeline(), spliterator, batchSize, timeout, unit);
 	}
 	
 	private class Batch {

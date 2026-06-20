@@ -13,32 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.machinic.stream.spliterator;
-
-import io.machinic.stream.MxStream;
-import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator.QueueWrapper;
-
-import java.util.concurrent.BlockingQueue;
-
-public class BlockingQueueWriterSpliterator<T> extends PeekSpliterator<T> {
-	
-	private final BlockingQueue<QueueWrapper<T>> queue;
-	
-	public BlockingQueueWriterSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, BlockingQueue<QueueWrapper<T>> queue) {
-		super(stream, previousSpliterator, () ->
-				value -> {
-					try {
-						queue.put(new QueueWrapper<T>(((T) value)));
-					} catch (InterruptedException e) {
-						throw new RuntimeException(e);
-					}
-				});
-		this.queue = queue;
-	}
-	
-	@Override
-	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new BlockingQueueWriterSpliterator<>(this.stream, spliterator, queue);
-	}
-}
+//
+//package io.machinic.stream.spliterator;
+//
+//import io.machinic.stream.BasePipeline;
+//import io.machinic.stream.MxStream;
+//import io.machinic.stream.TapBuilder;
+//import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator.QueueWrapper;
+//
+//import java.util.concurrent.BlockingQueue;
+//
+//public class BlockingQueueWriterSpliterator<T> extends PeekSpliterator<T> {
+//
+//	private final TapBuilder<T> tapBuilder;
+//	private final BlockingQueue<QueueWrapper<T>> queue;
+//
+//	public BlockingQueueWriterSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, TapBuilder<T> tapBuilder) {
+//		super(pipeline, previousSpliterator, () ->
+//				value -> {
+//					try {
+//						tapBuilder.queue.put(new QueueWrapper<T>(((T) value)));
+//					} catch (InterruptedException e) {
+//						throw new RuntimeException(e);
+//					}
+//				});
+//		this.queue = queue;
+//	}
+//
+//	@Override
+//	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
+//		return new BlockingQueueWriterSpliterator<>(this.getPipeline(), spliterator, queue);
+//	}
+//}

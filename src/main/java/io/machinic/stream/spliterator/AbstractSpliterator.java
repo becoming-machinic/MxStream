@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,25 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
+import io.machinic.stream.PipelineSource;
 
 public abstract class AbstractSpliterator<IN, OUT> implements MxSpliterator<OUT> {
 	
-	protected final MxStream<IN> stream;
+	protected final BasePipeline<?,IN> pipeline;
 	public final boolean parallel;
 	
-	public AbstractSpliterator(MxStream<IN> stream, boolean parallel) {
-		this.stream = stream;
+	public AbstractSpliterator(BasePipeline<?,IN> pipeline, boolean parallel) {
+		this.pipeline = pipeline;
 		this.parallel = parallel;
 	}
 	
-	protected MxStream<IN> getStream() {
-		return stream;
+	protected PipelineSource<?> getSource() {
+		return pipeline.getSource();
+	}
+	
+	protected BasePipeline<?,IN> getPipeline() {
+		return pipeline;
 	}
 	
 	protected boolean isParallel() {
@@ -44,6 +49,11 @@ public abstract class AbstractSpliterator<IN, OUT> implements MxSpliterator<OUT>
 			return this.split();
 		}
 		return null;
+	}
+	
+	@Override
+	public void onStart() {
+	
 	}
 	
 	@Override

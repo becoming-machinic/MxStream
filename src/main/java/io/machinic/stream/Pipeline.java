@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,17 +31,17 @@ public class Pipeline<IN, OUT> extends BasePipeline<IN, OUT> {
 	}
 	
 	@Override
-	protected PipelineSource<?> getSource() {
+	public PipelineSource<?> getSource() {
 		return source;
 	}
 	
 	@Override
-	protected BasePipeline<?, IN> getPrevious() {
+	public BasePipeline<?, IN> getPrevious() {
 		return previous;
 	}
 	
 	@Override
-	protected AbstractChainedSpliterator<IN, OUT> getSpliterator() {
+	public AbstractChainedSpliterator<IN, OUT> getSpliterator() {
 		return spliterator;
 	}
 	

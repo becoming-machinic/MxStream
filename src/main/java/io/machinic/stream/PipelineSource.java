@@ -41,6 +41,7 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	private final ExecutorService executorService;
 	private final CancellableSpliterator<IN> spliterator;
 	private long asyncTimeoutMillis = Long.MAX_VALUE;
+	private long pollIntervalMillis = 100L;
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
 	private volatile StreamException streamException = null;
 	
@@ -56,18 +57,27 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	}
 	
 	@Override
-	protected PipelineSource<?> getSource() {
+	public PipelineSource<?> getSource() {
 		return this;
 	}
 	
 	@Override
-	protected BasePipeline<?, IN> getPrevious() {
+	public BasePipeline<?, IN> getPrevious() {
 		return this;
 	}
 	
 	@Override
-	protected AbstractChainedSpliterator<IN, IN> getSpliterator() {
+	public AbstractChainedSpliterator<IN, IN> getSpliterator() {
 		return this.spliterator;
+	}
+	
+	protected void setPollIntervalMillis(long pollIntervalMillis) {
+		//noinspection MathClampMigration
+		this.pollIntervalMillis = Math.max(Math.min(pollIntervalMillis, this.pollIntervalMillis), 10L);
+	}
+	
+	public long getPollIntervalMillis() {
+		return pollIntervalMillis;
 	}
 	
 	public ExecutorService getExecutorService() {
@@ -182,12 +192,12 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		}
 		
 		@Override
-		protected PipelineSource<?> getSource() {
+		public PipelineSource<?> getSource() {
 			return parentPipeline.getSource();
 		}
 		
 		@Override
-		protected BasePipeline<?, IN> getPrevious() {
+		public BasePipeline<?, IN> getPrevious() {
 			//noinspection unchecked
 			return (BasePipeline<?, IN>) parentPipeline.getPrevious();
 		}
@@ -223,6 +233,11 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 				return new WrappingSpliterator<>(split);
 			}
 			return null;
+		}
+		
+		@Override
+		public void onStart() {
+		
 		}
 		
 		@Override

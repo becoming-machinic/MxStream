@@ -45,4 +45,8 @@ public class IntegerGeneratorIterator implements Iterator<Integer> {
 	public Stream<Integer> toStream() {
 		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, Spliterator.ORDERED), false);
 	}
+	
+	public Stream<Integer> toParallelStream() {
+		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, Spliterator.ORDERED), true);
+	}
 }

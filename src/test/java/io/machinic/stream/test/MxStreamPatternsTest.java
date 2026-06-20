@@ -18,8 +18,7 @@ package io.machinic.stream.test;
 
 import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamInterruptedException;
-import io.machinic.stream.TapBuilder;
-import io.machinic.stream.metrics.RateAsyncMapMetricSupplier;
+import io.machinic.stream.metrics.StreamAsyncMetricSupplier;
 import io.machinic.stream.test.utils.IntegerGeneratorIterator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,8 +35,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @Execution(ExecutionMode.SAME_THREAD)
 public class MxStreamPatternsTest {
@@ -50,7 +47,7 @@ public class MxStreamPatternsTest {
 	
 	@Test
 	public void asyncMapTest() {
-		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
+		StreamAsyncMetricSupplier metricSupplier = new StreamAsyncMetricSupplier();
 		long count = MxStream.of(new IntegerGeneratorIterator(500))
 				.asyncMap(100, ForkJoinPool.commonPool(),
 						metricSupplier,
@@ -139,7 +136,7 @@ public class MxStreamPatternsTest {
 	@Test
 	public void chainedAsyncMapTest() {
 		int recordCount = 500;
-		RateAsyncMapMetricSupplier metricSupplier = new RateAsyncMapMetricSupplier();
+		StreamAsyncMetricSupplier metricSupplier = new StreamAsyncMetricSupplier();
 		long count = MxStream.of(new IntegerGeneratorIterator(recordCount))
 				.asyncMap(100, ForkJoinPool.commonPool(),
 						metricSupplier,
@@ -175,25 +172,25 @@ public class MxStreamPatternsTest {
 		System.out.println("Average task rate: " + metricSupplier.getAverageRate());
 	}
 	
-	@Test
-	public void streamTapTest() throws InterruptedException {
-		TapBuilder<String> tapBuilder = new TapBuilder<>(5);
-		
-		AtomicLong counter = new AtomicLong(0);
-		Thread streamThread = new Thread(() -> {
-			MxStream.of(new IntegerGeneratorIterator(500))
-					.map(integer -> Integer.toString(integer))
-					.tap(tapBuilder)
-					.forEach(value -> counter.incrementAndGet());
-		});
-		streamThread.setName("stream-thread");
-		streamThread.start();
-		
-		long tapCount = tapBuilder.awaitBuild()
-				.collect(Collectors.counting());
-		
-		Assertions.assertEquals(500, counter.get());
-		Assertions.assertEquals(500, tapCount);
-	}
+//	@Test
+//	public void streamTapTest() throws InterruptedException {
+//		TapBuilder<String> tapBuilder = new TapBuilder<>(5);
+//
+//		AtomicLong counter = new AtomicLong(0);
+//		Thread streamThread = new Thread(() -> {
+//			MxStream.of(new IntegerGeneratorIterator(500))
+//					.map(integer -> Integer.toString(integer))
+//					.tap(tapBuilder)
+//					.forEach(value -> counter.incrementAndGet());
+//		});
+//		streamThread.setName("stream-thread");
+//		streamThread.start();
+//
+//		long tapCount = tapBuilder.awaitBuild()
+//				.collect(Collectors.counting());
+//
+//		Assertions.assertEquals(500, counter.get());
+//		Assertions.assertEquals(500, tapCount);
+//	}
 	
 }

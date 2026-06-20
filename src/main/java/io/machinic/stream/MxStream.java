@@ -16,7 +16,8 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.metrics.AsyncMetric;
+import io.machinic.stream.metrics.AsyncMetricSupplier;
 import io.machinic.stream.metrics.StreamMetricSupplier;
 import io.machinic.stream.util.Require;
 
@@ -419,11 +420,11 @@ public interface MxStream<T> {
 	 * @param bufferSize The size of the buffer used for intermediate results.
 	 * @param asyncTimeoutMillis The default timeout in milliseconds for an asynchronous operation on this stream.
 	 * @param executorService An executor service used to run the flatMap tasks asynchronously.
-	 * @param metricSupplier A supplier that provides an {@link io.machinic.stream.metrics.AsyncMapMetric} that can be used to collect metrics from the stream.
+	 * @param metricSupplier A supplier that provides an {@link AsyncMetric} that can be used to collect metrics from the stream.
 	 * @param function A {@link io.machinic.stream.FlatMapProducerFunction} that takes an element, converts it to a stream, and calls the consumer for each.
 	 * @return A pipeline that can be used to process data from an input stream.
 	 */
-	default <R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, FlatMapProducerFunction<? super T, ? extends R> function) {
+	default <R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, FlatMapProducerFunction<? super T, ? extends R> function) {
 		Objects.requireNonNull(function);
 		return this.asyncFlatMapProducer(parallelism, bufferSize, asyncTimeoutMillis, executorService, metricSupplier, () -> function);
 	}
@@ -438,7 +439,7 @@ public interface MxStream<T> {
 	 * @param function A function that takes an element from this stream and returns a Stream of another type, which will then be flattened into the resulting stream.
 	 * @return A new MxStream instance containing the results after applying the asynchronous flat map operation.
 	 */
-	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super T, ? extends Stream<? extends R>> function) {
+	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Function<? super T, ? extends Stream<? extends R>> function) {
 		Objects.requireNonNull(function);
 		return this.asyncFlatMapProducer(parallelism, bufferSize, asyncTimeoutMillis, executorService, metricSupplier, FlatMapProducerFunction.wrap(function));
 	}
@@ -450,11 +451,11 @@ public interface MxStream<T> {
 	 * @param bufferSize The size of the buffer used for intermediate results.
 	 * @param asyncTimeoutMillis The default timeout in milliseconds for an asynchronous operation on this stream.
 	 * @param executorService An executor service used to run the flatMap tasks asynchronously.
-	 * @param metricSupplier A supplier that provides an {@link io.machinic.stream.metrics.AsyncMapMetric} that can be used to collect metrics from the stream.
+	 * @param metricSupplier A supplier that provides an {@link AsyncMetric} that can be used to collect metrics from the stream.
 	 * @param supplier A supplier that provides a {@link io.machinic.stream.FlatMapProducerFunction} that takes an element, converts it to a stream, and calls the consumer for each.
 	 * @return A pipeline that can be used to process data from an input stream.
 	 */
-	<R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<FlatMapProducerFunction<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<FlatMapProducerFunction<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Applies a flat map operation to the elements of this stream asynchronously with specified parallelism, buffer size, and timeout.
@@ -466,7 +467,7 @@ public interface MxStream<T> {
 	 * @param supplier a supplier of functions that will be applied to each element of this stream to produce a new stream of elements (must not be null).
 	 * @return a new MxStream resulting from applying the async flat map operation.
 	 */
-	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends Stream<? extends R>>> supplier) {
+	default <R> MxStream<R> asyncFlatMap(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends Stream<? extends R>>> supplier) {
 		Objects.requireNonNull(supplier);
 		Require.equalOrGreater(parallelism, 1, "parallelism");
 		Require.equalOrGreater(bufferSize, 1, "bufferSize");
@@ -542,7 +543,7 @@ public interface MxStream<T> {
 	 * @param metricSupplier the metricSupplier will store captured metrics
 	 * @return a new stream with the mapped elements
 	 */
-	default <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper) {
+	default <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, metricSupplier, () -> mapper);
 	}
@@ -557,7 +558,7 @@ public interface MxStream<T> {
 	 * @param mapper the function to apply to each element of the stream
 	 * @return an MxStream of mapped values
 	 */
-	default <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper) {
+	default <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Function<? super T, ? extends R> mapper) {
 		Objects.requireNonNull(mapper);
 		return this.asyncMap(parallelism, asyncTimeoutMillis, executorService, metricSupplier, () -> mapper);
 	}
@@ -620,7 +621,7 @@ public interface MxStream<T> {
 	 * @param metricSupplier the metricSupplier will store captured metrics
 	 * @return a new stream with the mapped elements
 	 */
-	default <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier) {
+	default <R> MxStream<R> asyncMap(int parallelism, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier) {
 		return this.asyncMap(parallelism, this.getAsyncTimeoutMillis(), executorService, metricSupplier, supplier);
 	}
 	
@@ -634,7 +635,7 @@ public interface MxStream<T> {
 	 * @param supplier A function that is applied to each result of the asynchronous operations to produce the final result.
 	 * @return A MxStream object that emits the mapped results as they become available.
 	 */
-	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier);
+	<R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<Function<? super T, ? extends R>> supplier);
 	
 	/**
 	 * Batches the elements of the stream into lists of the given size. This operation is the logical opposite of flatMap.
@@ -706,8 +707,6 @@ public interface MxStream<T> {
 	 * @param executorService executorService that parallel tasks are submitted to
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);
-	
-	MxStream<T> tap(TapBuilder<T> tapBuilder);
 	
 	/**
 	 * Performs the given action for each element of the stream. This method is a terminal operation and will process all elements.

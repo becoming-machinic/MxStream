@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -27,8 +27,8 @@ public class BlockingQueueReaderSpliterator<T> extends AbstractSpliterator<T, T>
 	private final BlockingQueue<QueueWrapper<T>> queue;
 	
 	// Create a Spliterator that reads from a BlockingQueue. The previousSpliterator is used for characteristics.
-	public BlockingQueueReaderSpliterator(MxStream<T> stream, boolean parallel, BlockingQueue<QueueWrapper<T>> queue) {
-		super(stream, parallel);
+	public BlockingQueueReaderSpliterator(BasePipeline<?,T> pipeline, boolean parallel, BlockingQueue<QueueWrapper<T>> queue) {
+		super(pipeline, parallel);
 		this.queue = queue;
 	}
 	
@@ -42,7 +42,7 @@ public class BlockingQueueReaderSpliterator<T> extends AbstractSpliterator<T, T>
 					action.accept(next.get());
 				} else //noinspection ConstantValue
 					if (next == null) {
-						return !stream.isClosed();
+						return !this.getPipeline().isClosed();
 					}
 			} while (true);
 		} catch (InterruptedException e) {
@@ -52,7 +52,7 @@ public class BlockingQueueReaderSpliterator<T> extends AbstractSpliterator<T, T>
 	
 	@Override
 	protected MxSpliterator<T> split() {
-		return new BlockingQueueReaderSpliterator<>(this.stream, parallel, queue);
+		return new BlockingQueueReaderSpliterator<>(this.getPipeline(), parallel, queue);
 	}
 	
 	public static class QueueWrapper<T> {

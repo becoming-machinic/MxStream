@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ public interface MxSpliterator<T> {
 	 */
 	default void forEachRemaining(Consumer<? super T> action) {
 		do {
+			// NOOP
 		} while (tryAdvance(action));
 	}
 	
@@ -51,6 +52,11 @@ public interface MxSpliterator<T> {
 	 * @return a {@code MxSpliterator} covering some portion of the elements, or {@code null} if this spliterator cannot be split
 	 */
 	MxSpliterator<T> trySplit();
+	
+	/**
+	 * Called by worker thread just before calling tryAdvance for the first time
+	 */
+	void onStart();
 	
 	void close();
 	

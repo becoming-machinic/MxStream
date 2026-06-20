@@ -31,7 +31,7 @@ public class PipelineParallel<IN, OUT> extends Pipeline<IN, OUT> {
 		this.executorService = (executorService != null ? executorService : previous.getExecutorService());
 	}
 	
-	protected ExecutorService getExecutorService() {
+	public ExecutorService getExecutorService() {
 		return executorService;
 	}
 	
