@@ -17,7 +17,6 @@
 package io.machinic.stream;
 
 import io.machinic.stream.spliterator.AbstractChainedSpliterator;
-import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator;
 import io.machinic.stream.spliterator.CancellableSpliterator;
 import io.machinic.stream.spliterator.MxSpliterator;
 import io.machinic.stream.util.BufferedReaderIterator;
@@ -26,7 +25,6 @@ import java.io.BufferedReader;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -182,36 +180,36 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		}
 	}
 	
-	public static class TapSource<IN> extends PipelineSource<IN> {
-		
-		private final BasePipeline<?, IN> parentPipeline;
-		
-		public TapSource(BasePipeline<?, IN> parentPipeline, BlockingQueue<BlockingQueueReaderSpliterator.QueueWrapper<IN>> queue, boolean parallel, int parallelism, ExecutorService executorService) {
-			super(new BlockingQueueReaderSpliterator<>(parentPipeline, parallel, queue), parallel, parallelism, executorService);
-			this.parentPipeline = parentPipeline;
-		}
-		
-		@Override
-		public PipelineSource<?> getSource() {
-			return parentPipeline.getSource();
-		}
-		
-		@Override
-		public BasePipeline<?, IN> getPrevious() {
-			//noinspection unchecked
-			return (BasePipeline<?, IN>) parentPipeline.getPrevious();
-		}
-		
-		@Override
-		public boolean isClosed() {
-			return this.parentPipeline.isClosed();
-		}
-		
-		@Override
-		public void close() throws Exception {
-			parentPipeline.close();
-		}
-	}
+//	public static class TapSource<IN> extends PipelineSource<IN> {
+//
+//		private final BasePipeline<?, IN> parentPipeline;
+//
+//		public TapSource(BasePipeline<?, IN> parentPipeline, BlockingQueue<BlockingQueueReaderSpliterator.QueueWrapper<IN>> queue, boolean parallel, int parallelism, ExecutorService executorService) {
+//			super(new BlockingQueueReaderSpliterator<>(parentPipeline, parallel, queue), parallel, parallelism, executorService);
+//			this.parentPipeline = parentPipeline;
+//		}
+//
+//		@Override
+//		public PipelineSource<?> getSource() {
+//			return parentPipeline.getSource();
+//		}
+//
+//		@Override
+//		public BasePipeline<?, IN> getPrevious() {
+//			//noinspection unchecked
+//			return (BasePipeline<?, IN>) parentPipeline.getPrevious();
+//		}
+//
+//		@Override
+//		public boolean isClosed() {
+//			return this.parentPipeline.isClosed();
+//		}
+//
+//		@Override
+//		public void close() throws Exception {
+//			parentPipeline.close();
+//		}
+//	}
 	
 	public static class WrappingSpliterator<IN> implements MxSpliterator<IN> {
 		

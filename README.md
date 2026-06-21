@@ -1,4 +1,6 @@
 # **Welcome to MxStream**
+![Coverage](badges/jacoco.svg)
+![Branches](badges/branches.svg)
 MxStream is a Java Stream library that provides enhanced functionality beyond the standard Java streams. It includes methods for parallel processing, asynchronous mapping, batching, filtering, sorting, and more.
 ## **Key Features**
 - **Parallel Processing**: Control over parallelism level for improved performance.

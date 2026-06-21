@@ -294,8 +294,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 							throw new StreamException(String.format("An error occurred while processing a stream: %s", e.getMessage()), e);
 						}
 					} catch (InterruptedException e) {
-						// TODO we likely need to cancel the stream here
-						throw new RuntimeException(e);
+						throw new StreamInterruptedException(String.format("An InterruptedException was thrown by stream: %s", e.getMessage()), e);
 					} finally {
 						pair.getLeft().close();
 					}
