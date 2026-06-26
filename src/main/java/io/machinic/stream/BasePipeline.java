@@ -26,6 +26,7 @@ import io.machinic.stream.spliterator.AsyncFlatMapSpliterator;
 import io.machinic.stream.spliterator.AsyncMapSpliterator;
 import io.machinic.stream.spliterator.BatchSpliterator;
 import io.machinic.stream.spliterator.BatchTimeoutSpliterator;
+import io.machinic.stream.spliterator.FanOutPartitionedSpliterator;
 import io.machinic.stream.spliterator.FanOutSpliterator;
 import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
@@ -51,6 +52,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -218,6 +220,17 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 			Require.equalOrGreater(parallelism, 1, "parallelism");
 			Require.equalOrGreater(bufferSize, 1, "bufferSize");
 			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new FanOutSpliterator<>(this, this.getSpliterator(), bufferSize));
+		}
+		return this;
+	}
+	
+	@Override
+	public MxStream<OUT> fanOutPartitioned(int parallelism, int bufferSize, ExecutorService executorService, Supplier<ToIntFunction<? super OUT>> supplier) {
+		if (!this.isParallel()) {
+			Require.equalOrGreater(parallelism, 2, "parallelism");
+			Require.equalOrGreater(bufferSize, 1, "bufferSize");
+			Objects.requireNonNull(supplier);
+			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new FanOutPartitionedSpliterator<>(this, this.getSpliterator(), bufferSize, supplier));
 		}
 		return this;
 	}

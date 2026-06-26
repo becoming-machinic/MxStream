@@ -33,6 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -127,7 +128,7 @@ public interface MxStream<T> {
 	MxStream<T> filter(Supplier<Predicate<? super T>> supplier);
 	
 	/**
-	 * Skips the fist n elements of the stream. This method can be used to remove certain initial elements from the stream, allowing for more control over processing order.
+	 * Skips the first n elements of the stream. This method can be used to remove certain initial elements from the stream, allowing for more control over processing order.
 	 * @param n the number of elements to skip
 	 * @return a new stream with the mapped elements
 	 */
@@ -707,6 +708,96 @@ public interface MxStream<T> {
 	 * @param executorService executorService that parallel tasks are submitted to
 	 */
 	MxStream<T> fanOut(int parallelism, int bufferSize, ExecutorService executorService);
+	
+	/**
+	 * Creates a fan-out partitioned stream where elements are distributed to multiple
+	 * downstream spliterators based on the result of applying the provided partitioning
+	 * function.
+	 *
+	 * <p>The returned stream creates {@code parallelism} downstream spliterators for
+	 * parallel processing. Each element is assigned to a partition using the integer
+	 * returned by {@code toIntFunction}.</p>
+	 *
+	 * @param parallelism the number of parallel downstream spliterators to create
+	 * @param bufferSize the buffer size for each partition's internal queue
+	 * @param toIntFunction the function used to determine the partition for each element
+	 * @return a new MxStream instance representing the fan-out partitioned stream
+	 * @throws IllegalArgumentException if parallelism is less than 2 or bufferSize is less than 1
+	 */
+	default MxStream<T> fanOutPartitioned(int parallelism, int bufferSize, ToIntFunction<? super T> toIntFunction) {
+		return fanOutPartitioned(parallelism, bufferSize, null, () -> toIntFunction);
+	}
+	
+	/**
+	 * Creates a fan-out partitioned stream where elements are distributed to multiple
+	 * downstream spliterators based on the result of applying the provided partitioning
+	 * function, using the supplied executor service for parallel processing.
+	 *
+	 * <p>The returned stream creates {@code parallelism} downstream spliterators for
+	 * parallel processing. Each element is assigned to a partition using the integer
+	 * returned by {@code toIntFunction}.</p>
+	 *
+	 * @param parallelism the number of parallel downstream spliterators to create
+	 * @param bufferSize the buffer size for each partition's internal queue
+	 * @param executorService the executor service to use for parallel processing,
+	 *                        or {@code null} to use a default virtual thread per task executor
+	 * @param toIntFunction the function used to determine the partition for each element
+	 * @return a new MxStream instance representing the fan-out partitioned stream
+	 * @throws IllegalArgumentException if parallelism is less than 2 or bufferSize is less than 1
+	 */
+	default MxStream<T> fanOutPartitioned(int parallelism, int bufferSize, ExecutorService executorService, ToIntFunction<? super T> toIntFunction) {
+		return fanOutPartitioned(parallelism, bufferSize, executorService, () -> toIntFunction);
+	}
+	
+	/**
+	 * Creates a fan-out partitioned stream where elements are distributed to multiple
+	 * downstream spliterators based on the result of applying a partitioning function.
+	 * Each downstream spliterator receives elements according to the partitioning logic,
+	 * allowing for parallel processing of different partitions.
+	 *
+	 * <p>The returned stream will create {@code parallelism} number of downstream spliterators
+	 * that will process elements in parallel. Elements are distributed to these spliterators
+	 * using the provided {@code supplier} to get a partitioning function that maps each
+	 * element to an integer representing its target partition.</p>
+	 *
+	 * <p>This operation is a stateful intermediate operation that creates multiple
+	 * downstream processing paths, enabling parallel processing of different partitions
+	 * of the stream elements.</p>
+	 *
+	 * @param parallelism the number of parallel downstream spliterators to create
+	 * @param bufferSize the buffer size for each partition's internal queue
+	 * @param supplier a supplier that provides the ToIntFunction used for partitioning elements
+	 * @return a new MxStream instance representing the fan-out partitioned stream
+	 * @throws IllegalArgumentException if parallelism is less than 2 or bufferSize is less than 1
+	 */
+	default MxStream<T> fanOutPartitioned(int parallelism, int bufferSize, Supplier<ToIntFunction<? super T>> supplier) {
+		return fanOutPartitioned(parallelism, bufferSize, null, supplier);
+	}
+	
+	/**
+	 * Creates a fan-out partitioned stream where elements are distributed to multiple
+	 * downstream spliterators based on the result of applying a partitioning function.
+	 * Each downstream spliterator receives elements according to the partitioning logic,
+	 * allowing for parallel processing of different partitions.
+	 *
+	 * <p>The returned stream will create {@code parallelism} number of downstream spliterators
+	 * that will process elements in parallel. Elements are distributed to these spliterators
+	 * using the provided {@code supplier} to get a partitioning function that maps each
+	 * element to an integer representing its target partition.</p>
+	 *
+	 * <p>This operation is a stateful intermediate operation that creates multiple
+	 * downstream processing paths, enabling parallel processing of different partitions
+	 * of the stream elements.</p>
+	 *
+	 * @param parallelism the number of parallel downstream spliterators to create
+	 * @param bufferSize the buffer size for each partition's internal queue
+	 * @param executorService the executor service to use for parallel processing,
+	 *                        or {@code null} to use a default virtual thread per task executor
+	 * @param supplier a supplier that provides the ToIntFunction used for partitioning elements
+	 * @return a new MxStream instance representing the fan-out partitioned stream
+	 * @throws IllegalArgumentException if parallelism is less than 2 or bufferSize is less than 1
+	 */
+	MxStream<T> fanOutPartitioned(int parallelism, int bufferSize, ExecutorService executorService, Supplier<ToIntFunction<? super T>> supplier);
 	
 	/**
 	 * Performs the given action for each element of the stream. This method is a terminal operation and will process all elements.

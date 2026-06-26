@@ -22,17 +22,32 @@ import io.machinic.stream.StreamInterruptedException;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 
-public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
+/**
+ * A spliterator that partitions elements from a previous spliterator into multiple output spliterators based on
+ * a partitioning function. This implementation uses a fan-out pattern where elements are distributed across
+ * multiple secondary spliterators.
+ *
+ * @param <T> the type of elements provided by this spliterator
+ */
+public class FanOutPartitionedSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
-	private final BlockingQueue<Wrapper> queue;
+	private final CopyOnWriteArrayList<FanOutSecondarySpliterator> partitions = new CopyOnWriteArrayList<>();
+	private final int bufferSize;
+	private final Supplier<ToIntFunction<? super T>> supplier;
+	private final ToIntFunction<? super T> toIntFunction;
 	private volatile boolean done = false;
 	
-	public FanOutSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, int bufferSize) {
+	public FanOutPartitionedSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, int bufferSize, Supplier<ToIntFunction<? super T>> supplier) {
 		super(pipeline, previousSpliterator);
-		this.queue = new ArrayBlockingQueue<>(bufferSize);
+		this.bufferSize = bufferSize;
+		this.supplier = supplier;
+		this.toIntFunction = supplier.get();
 	}
 	
 	protected boolean isDone() {
@@ -45,10 +60,10 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		do {
 			advance = this.getPreviousSpliterator().tryAdvance(value -> {
 				try {
-					// Create wrapper once outside the loop to avoid multiple instances
+					int partitionIndex = toIntFunction.applyAsInt(value) % partitions.size();
 					Wrapper wrapper = new Wrapper(value);
 					do {
-						if (queue.offer(wrapper, 100, TimeUnit.MILLISECONDS)) {
+						if (partitions.get(partitionIndex).offer(wrapper, 100, TimeUnit.MILLISECONDS)) {
 							break;
 						}
 					} while (!done);
@@ -69,7 +84,9 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	
 	@Override
 	public MxSpliterator<T> trySplit() {
-		return new FanOutSecondarySpliterator(this);
+		FanOutSecondarySpliterator secondarySpliterator = new FanOutSecondarySpliterator(this);
+		this.partitions.add(secondarySpliterator);
+		return secondarySpliterator;
 	}
 	
 	private class Wrapper {
@@ -88,16 +105,21 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	public void close() {
 		super.close();
 		this.done = true;
-		this.queue.clear();
 	}
 	
 	public class FanOutSecondarySpliterator implements MxSpliterator<T> {
 		
-		private final FanOutSpliterator<T> parent;
+		private final FanOutPartitionedSpliterator<T> parent;
+		private final BlockingQueue<Wrapper> queue;
 		private long pollIntervalMillis = 100;
 		
-		public FanOutSecondarySpliterator(FanOutSpliterator<T> parent) {
+		public FanOutSecondarySpliterator(FanOutPartitionedSpliterator<T> parent) {
 			this.parent = parent;
+			this.queue = new ArrayBlockingQueue<>(bufferSize);
+		}
+		
+		private boolean offer(Wrapper wrapper, long timeout, TimeUnit unit) throws InterruptedException {
+			return this.queue.offer(wrapper, timeout, unit);
 		}
 		
 		@Override
@@ -105,7 +127,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 			Wrapper wrapper = null;
 			try {
 				do {
-					wrapper = parent.queue.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
+					wrapper = queue.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
 					if (wrapper != null) {
 						action.accept(wrapper.getValue());
 					}
@@ -116,7 +138,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 			} catch (RuntimeException e) {
 				parent.getPipeline().exceptionHandler().onException(e, (wrapper != null ? wrapper.getValue() : null));
 			} catch (InterruptedException e) {
-				throw new StreamInterruptedException("FanOutSpliterator was interrupted");
+				throw new StreamInterruptedException("FanOutPartitionedSpliterator was interrupted");
 			}
 			return false;
 		}
@@ -134,6 +156,7 @@ public class FanOutSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 		@Override
 		public void close() {
 			parent.close();
+			this.queue.clear();
 		}
 	}
 }
