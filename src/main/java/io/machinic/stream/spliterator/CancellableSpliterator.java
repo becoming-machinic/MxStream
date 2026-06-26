@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -25,25 +25,25 @@ public class CancellableSpliterator<T> extends AbstractChainedSpliterator<T, T> 
 	
 	private final AtomicBoolean cancelled;
 	
-	public CancellableSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator) {
-		super(stream, previousSpliterator);
+	public CancellableSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator) {
+		super(pipeline, previousSpliterator);
 		this.cancelled = new AtomicBoolean(false);
 	}
 	
 	// Also set cancelled reference for split
-	private CancellableSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, AtomicBoolean cancelled) {
-		super(stream, previousSpliterator);
+	private CancellableSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, AtomicBoolean cancelled) {
+		super(pipeline, previousSpliterator);
 		this.cancelled = cancelled;
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super T> action) {
-		return !cancelled.get() && previousSpliterator.tryAdvance(action);
+		return !cancelled.get() && getPreviousSpliterator().tryAdvance(action);
 	}
 	
 	@Override
 	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new CancellableSpliterator<>(this.stream, spliterator, cancelled);
+		return new CancellableSpliterator<>(this.getPipeline(), spliterator, cancelled);
 	}
 	
 	public void cancel() {

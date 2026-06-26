@@ -16,12 +16,12 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.StreamInterruptedException;
 import io.machinic.stream.concurrent.MapFutureTask;
-import io.machinic.stream.metrics.AsyncMapMetric;
-import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.metrics.AsyncMetric;
+import io.machinic.stream.metrics.AsyncMetricSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,13 +45,12 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	private final long asyncTimeoutMillis;
 	private final ExecutorService providedExecutorService;
 	private final ExecutorService executorService;
-	private final AsyncMapMetricSupplier metricSupplier;
-	private final AsyncMapMetric metric;
+	private final AsyncMetricSupplier metricSupplier;
+	private final AsyncMetric metric;
 	private final Queue<MapFutureTask<IN, OUT>> queue;
-	private boolean started;
 	
-	public AsyncMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
-		super(stream, previousSpliterator);
+	public AsyncMapSpliterator(BasePipeline<?,IN> pipeline, MxSpliterator<IN> previousSpliterator, int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.supplier = supplier;
 		this.mapper = supplier.get();
 		this.parallelism = parallelism;
@@ -97,7 +96,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 								action.accept(futureTask.getResult());
 							} else {
 								try {
-									getStream().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
+									getPipeline().exceptionHandler().onException(futureTask.getException(), futureTask.getInput());
 								} catch (StreamException e) {
 									throw e;
 								} catch (Exception e) {
@@ -113,7 +112,7 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 							// Task will be canceled, we can safely dequeue the task
 							queue.poll();
 							futureTask.cancel(true);
-							getStream().exceptionHandler().onException(new StreamInterruptedException("asyncMap has been interrupted"), futureTask.getInput());
+							getPipeline().exceptionHandler().onException(new StreamInterruptedException("asyncMap has been interrupted"), futureTask.getInput());
 						}
 					} catch (InterruptedException e) {
 						throw new StreamInterruptedException("Stream has been interrupted");
@@ -142,14 +141,9 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
-		if (!started && this.metric != null) {
-			this.metric.onStart();
-			started = true;
-		}
-		
 		boolean canAdvance;
 		do {
-			canAdvance = this.previousSpliterator.tryAdvance(value ->
+			canAdvance = this.getPreviousSpliterator().tryAdvance(value ->
 			{
 				this.enqueue(new MapFutureTask<IN, OUT>(this.mapper, value));
 				dequeue(action, false);
@@ -167,14 +161,20 @@ public class AsyncMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN,
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
-		return new AsyncMapSpliterator<>(stream, spliterator, parallelism, asyncTimeoutMillis, this.providedExecutorService, metricSupplier, supplier);
+		return new AsyncMapSpliterator<>(getPipeline(), spliterator, parallelism, asyncTimeoutMillis, this.providedExecutorService, metricSupplier, supplier);
+	}
+	
+	@Override
+	public void onStart() {
+		super.onStart();
+		if (this.metric != null) {
+			this.metric.onStart();
+		}
 	}
 	
 	@Override
 	public void close() {
-		if (this.metric != null) {
-			this.metric.onStop();
-		}
+		super.close();
 		
 		// shutdown self-created executor service
 		if(this.providedExecutorService == null && this.executorService != null) {

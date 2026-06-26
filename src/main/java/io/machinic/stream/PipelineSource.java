@@ -17,7 +17,6 @@
 package io.machinic.stream;
 
 import io.machinic.stream.spliterator.AbstractChainedSpliterator;
-import io.machinic.stream.spliterator.BlockingQueueReaderSpliterator;
 import io.machinic.stream.spliterator.CancellableSpliterator;
 import io.machinic.stream.spliterator.MxSpliterator;
 import io.machinic.stream.util.BufferedReaderIterator;
@@ -26,7 +25,6 @@ import java.io.BufferedReader;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +39,7 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	private final ExecutorService executorService;
 	private final CancellableSpliterator<IN> spliterator;
 	private long asyncTimeoutMillis = Long.MAX_VALUE;
+	private long pollIntervalMillis = 100L;
 	private MxStreamExceptionHandler exceptionHandler = new MxStreamExceptionHandler.DefaultMxStreamExceptionHandler();
 	private volatile StreamException streamException = null;
 	
@@ -56,18 +55,27 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 	}
 	
 	@Override
-	protected PipelineSource<?> getSource() {
+	public PipelineSource<?> getSource() {
 		return this;
 	}
 	
 	@Override
-	protected BasePipeline<?, IN> getPrevious() {
+	public BasePipeline<?, IN> getPrevious() {
 		return this;
 	}
 	
 	@Override
-	protected AbstractChainedSpliterator<IN, IN> getSpliterator() {
+	public AbstractChainedSpliterator<IN, IN> getSpliterator() {
 		return this.spliterator;
+	}
+	
+	protected void setPollIntervalMillis(long pollIntervalMillis) {
+		//noinspection MathClampMigration
+		this.pollIntervalMillis = Math.max(Math.min(pollIntervalMillis, this.pollIntervalMillis), 10L);
+	}
+	
+	public long getPollIntervalMillis() {
+		return pollIntervalMillis;
 	}
 	
 	public ExecutorService getExecutorService() {
@@ -172,36 +180,36 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 		}
 	}
 	
-	public static class TapSource<IN> extends PipelineSource<IN> {
-		
-		private final BasePipeline<?, IN> parentPipeline;
-		
-		public TapSource(BasePipeline<?, IN> parentPipeline, BlockingQueue<BlockingQueueReaderSpliterator.QueueWrapper<IN>> queue, boolean parallel, int parallelism, ExecutorService executorService) {
-			super(new BlockingQueueReaderSpliterator<>(parentPipeline, parallel, queue), parallel, parallelism, executorService);
-			this.parentPipeline = parentPipeline;
-		}
-		
-		@Override
-		protected PipelineSource<?> getSource() {
-			return parentPipeline.getSource();
-		}
-		
-		@Override
-		protected BasePipeline<?, IN> getPrevious() {
-			//noinspection unchecked
-			return (BasePipeline<?, IN>) parentPipeline.getPrevious();
-		}
-		
-		@Override
-		public boolean isClosed() {
-			return this.parentPipeline.isClosed();
-		}
-		
-		@Override
-		public void close() throws Exception {
-			parentPipeline.close();
-		}
-	}
+//	public static class TapSource<IN> extends PipelineSource<IN> {
+//
+//		private final BasePipeline<?, IN> parentPipeline;
+//
+//		public TapSource(BasePipeline<?, IN> parentPipeline, BlockingQueue<BlockingQueueReaderSpliterator.QueueWrapper<IN>> queue, boolean parallel, int parallelism, ExecutorService executorService) {
+//			super(new BlockingQueueReaderSpliterator<>(parentPipeline, parallel, queue), parallel, parallelism, executorService);
+//			this.parentPipeline = parentPipeline;
+//		}
+//
+//		@Override
+//		public PipelineSource<?> getSource() {
+//			return parentPipeline.getSource();
+//		}
+//
+//		@Override
+//		public BasePipeline<?, IN> getPrevious() {
+//			//noinspection unchecked
+//			return (BasePipeline<?, IN>) parentPipeline.getPrevious();
+//		}
+//
+//		@Override
+//		public boolean isClosed() {
+//			return this.parentPipeline.isClosed();
+//		}
+//
+//		@Override
+//		public void close() throws Exception {
+//			parentPipeline.close();
+//		}
+//	}
 	
 	public static class WrappingSpliterator<IN> implements MxSpliterator<IN> {
 		
@@ -223,6 +231,11 @@ public abstract class PipelineSource<IN> extends BasePipeline<IN, IN> implements
 				return new WrappingSpliterator<>(split);
 			}
 			return null;
+		}
+		
+		@Override
+		public void onStart() {
+		
 		}
 		
 		@Override

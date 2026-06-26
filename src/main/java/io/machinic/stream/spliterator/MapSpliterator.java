@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -28,26 +28,26 @@ public class MapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, OUT>
 	private final Supplier<Function<? super IN, ? extends OUT>> supplier;
 	private final Function<? super IN, ? extends OUT> mapper;
 	
-	public MapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends OUT>> supplier) {
-		super(stream, previousSpliterator);
+	public MapSpliterator(BasePipeline<?,IN> pipeline, MxSpliterator<IN> previousSpliterator, Supplier<Function<? super IN, ? extends OUT>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.supplier = Objects.requireNonNull(supplier);
 		this.mapper = supplier.get();
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
-		return this.previousSpliterator.tryAdvance(value -> {
+		return this.getPreviousSpliterator().tryAdvance(value -> {
 			try {
 				action.accept(mapper.apply(value));
 			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
+				getPipeline().exceptionHandler().onException(e, value);
 			}
 		});
 	}
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
-		return new MapSpliterator<>(this.stream, spliterator, supplier);
+		return new MapSpliterator<>(this.getPipeline(), spliterator, supplier);
 	}
 	
 }

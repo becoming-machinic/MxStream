@@ -16,7 +16,7 @@
 
 package io.machinic.stream;
 
-import io.machinic.stream.metrics.AsyncMapMetricSupplier;
+import io.machinic.stream.metrics.AsyncMetricSupplier;
 import io.machinic.stream.metrics.StreamMetricSupplier;
 import io.machinic.stream.sink.AbstractSink;
 import io.machinic.stream.sink.CollectorSink;
@@ -26,7 +26,7 @@ import io.machinic.stream.spliterator.AsyncFlatMapSpliterator;
 import io.machinic.stream.spliterator.AsyncMapSpliterator;
 import io.machinic.stream.spliterator.BatchSpliterator;
 import io.machinic.stream.spliterator.BatchTimeoutSpliterator;
-import io.machinic.stream.spliterator.BlockingQueueWriterSpliterator;
+import io.machinic.stream.spliterator.FanOutPartitionedSpliterator;
 import io.machinic.stream.spliterator.FanOutSpliterator;
 import io.machinic.stream.spliterator.FilteringSpliterator;
 import io.machinic.stream.spliterator.FlatMapSpliterator;
@@ -52,17 +52,22 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
-	private static final Logger logger = LoggerFactory.getLogger(MxStream.class);
+	private static final Logger logger = LoggerFactory.getLogger(BasePipeline.class);
 	
-	protected abstract BasePipeline<?, IN> getPrevious();
+	public abstract BasePipeline<?, IN> getPrevious();
 	
-	protected ExecutorService getExecutorService() {
+	public abstract PipelineSource<?> getSource();
+	
+	public abstract AbstractChainedSpliterator<IN, OUT> getSpliterator();
+	
+	public ExecutorService getExecutorService() {
 		return getPrevious().getExecutorService();
 	}
 	
@@ -87,10 +92,6 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	public boolean isClosed() {
 		return getSource().isClosed();
 	}
-	
-	protected abstract PipelineSource<?> getSource();
-	
-	protected abstract AbstractChainedSpliterator<IN, OUT> getSpliterator();
 	
 	public StreamException getException() {
 		return getSource().getException();
@@ -168,7 +169,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<FlatMapProducerFunction<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncFlatMapProducer(int parallelism, int bufferSize, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<FlatMapProducerFunction<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		Require.equalOrGreater(parallelism, 1, "parallelism");
 		Require.equalOrGreater(bufferSize, 1, "bufferSize");
@@ -177,7 +178,7 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMapMetricSupplier metricSupplier, Supplier<Function<? super OUT, ? extends R>> supplier) {
+	public <R> MxStream<R> asyncMap(int parallelism, long asyncTimeoutMillis, ExecutorService executorService, AsyncMetricSupplier metricSupplier, Supplier<Function<? super OUT, ? extends R>> supplier) {
 		Objects.requireNonNull(supplier);
 		Require.equalOrGreater(parallelism, 1, "parallelism");
 		Require.equalOrGreater(asyncTimeoutMillis, 1, "asyncTimeoutMillis");
@@ -195,6 +196,8 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 		Require.equalOrGreater(batchSize, 1, "batchSize");
 		Require.equalOrGreater(timeout, 1, "timeout");
 		Objects.requireNonNull(unit);
+		long timeoutMillis = unit.toMillis(timeout);
+		this.getSource().setPollIntervalMillis(timeoutMillis);
 		return new Pipeline<>(this.getSource(), this, new BatchTimeoutSpliterator<>(this, this.getSpliterator(), batchSize, timeout, unit));
 	}
 	
@@ -222,11 +225,22 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	}
 	
 	@Override
-	public MxStream<OUT> tap(TapBuilder<OUT> tapBuilder) {
-		Objects.requireNonNull(tapBuilder);
-		tapBuilder.source(this);
-		return new Pipeline<>(this.getSource(), this, new BlockingQueueWriterSpliterator<>(this, this.getSpliterator(), tapBuilder.queue));
+	public MxStream<OUT> fanOutPartitioned(int parallelism, int bufferSize, ExecutorService executorService, Supplier<ToIntFunction<? super OUT>> supplier) {
+		if (!this.isParallel()) {
+			Require.equalOrGreater(parallelism, 2, "parallelism");
+			Require.equalOrGreater(bufferSize, 1, "bufferSize");
+			Objects.requireNonNull(supplier);
+			return new PipelineParallel<>(this.getSource(), this, parallelism, executorService, new FanOutPartitionedSpliterator<>(this, this.getSpliterator(), bufferSize, supplier));
+		}
+		return this;
 	}
+	
+//	@Override
+//	public MxStream<OUT> tap(TapBuilder<OUT> tapBuilder) {
+//		Objects.requireNonNull(tapBuilder);
+//		tapBuilder.source(this);
+//		return new Pipeline<>(this.getSource(), this, new BlockingQueueWriterSpliterator<>(this, this.getSpliterator(), tapBuilder.queue));
+//	}
 	
 	@Override
 	public void forEach(Supplier<Consumer<? super OUT>> supplier) {
@@ -268,20 +282,22 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 				int parallelism = this.getParallelism();
 				ExecutorService executorService = this.getExecutorService();
 				
-				List<Runnable> tasks = new ArrayList<>();
+				List<Tuple.Pair<AbstractSink<OUT>, Runnable>> taskPairs = new ArrayList<>();
 				for (int i = 0; i < parallelism; i++) {
 					AbstractSink<OUT> split = sink.trySplit();
 					if (split != null) {
-						tasks.add(split::forEachRemaining);
+						taskPairs.add(Tuple.of(split, () -> split.forEachRemaining()));
 					}
 				}
 				
-				List<? extends Future<?>> futures = tasks.stream().map(executorService::submit).toList();
+				List<Tuple.Pair<AbstractSink<OUT>, Future<?>>> futurePairs = taskPairs.stream()
+						.map(pair -> Tuple.<AbstractSink<OUT>, Future<?>>of(pair.getLeft(), executorService.submit(pair.getRight())))
+						.toList();
 				sink.forEachRemaining();
 				
-				for (Future<?> future : futures) {
+				for (Tuple.Pair<AbstractSink<OUT>, Future<?>> pair : futurePairs) {
 					try {
-						future.get();
+						pair.getRight().get();
 					} catch (ExecutionException e) {
 						if (e.getCause() != null && e.getCause() instanceof StreamException) {
 							if (this.getSource().getException() == null) {
@@ -291,8 +307,9 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 							throw new StreamException(String.format("An error occurred while processing a stream: %s", e.getMessage()), e);
 						}
 					} catch (InterruptedException e) {
-						// TODO we likely need to cancel the stream here
-						throw new RuntimeException(e);
+						throw new StreamInterruptedException(String.format("An InterruptedException was thrown by stream: %s", e.getMessage()), e);
+					} finally {
+						pair.getLeft().close();
 					}
 				}
 			} else {
@@ -320,7 +337,6 @@ public abstract class BasePipeline<IN, OUT> implements MxStream<OUT> {
 	
 	public void close() throws Exception {
 		this.getSpliterator().close();
-		this.getPrevious().close();
 	}
 	
 }

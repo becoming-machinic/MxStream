@@ -16,8 +16,8 @@
 
 package io.machinic.stream.spliterator;
 
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.FlatMapProducerFunction;
-import io.machinic.stream.MxStream;
 import io.machinic.stream.StreamEventException;
 import io.machinic.stream.StreamException;
 import org.slf4j.Logger;
@@ -31,14 +31,14 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 	
 	private final Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier;
 	
-	public FlatMapSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator, Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier) {
-		super(stream, previousSpliterator);
+	public FlatMapSpliterator(BasePipeline<?,IN> pipeline, MxSpliterator<IN> previousSpliterator, Supplier<FlatMapProducerFunction<? super IN, ? extends OUT>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.supplier = supplier;
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super OUT> action) {
-		return this.previousSpliterator.tryAdvance(value -> {
+		return this.getPreviousSpliterator().tryAdvance(value -> {
 			try {
 				supplier.get().apply(value, action);
 			} catch (StreamEventException e) {
@@ -46,14 +46,14 @@ public class FlatMapSpliterator<IN, OUT> extends AbstractChainedSpliterator<IN, 
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
+				getPipeline().exceptionHandler().onException(e, value);
 			}
 		});
 	}
 	
 	@Override
 	public AbstractChainedSpliterator<IN, OUT> split(MxSpliterator<IN> spliterator) {
-		return new FlatMapSpliterator<>(this.stream, spliterator, supplier);
+		return new FlatMapSpliterator<>(this.getPipeline(), spliterator, supplier);
 	}
 	
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.StreamException;
 import io.machinic.stream.metrics.StreamMetric;
 import io.machinic.stream.metrics.StreamMetricSupplier;
@@ -29,8 +29,8 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	private final StreamMetric streamMetric;
 	private boolean started = false;
 	
-	public StreamMetricSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, StreamMetricSupplier metricSupplier) {
-		super(stream, previousSpliterator);
+	public StreamMetricSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, StreamMetricSupplier metricSupplier) {
+		super(pipeline, previousSpliterator);
 		this.metricSupplier = metricSupplier;
 		this.streamMetric = metricSupplier.get();
 	}
@@ -42,14 +42,14 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 			started = true;
 		}
 		long startNanos = System.nanoTime();
-		return this.previousSpliterator.tryAdvance(value -> {
+		return this.getPreviousSpliterator().tryAdvance(value -> {
 			try {
 				this.streamMetric.onEvent(Math.abs(System.nanoTime() - startNanos));
 				action.accept(value);
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
+				getPipeline().exceptionHandler().onException(e, value);
 				action.accept(value);
 			}
 		});
@@ -57,11 +57,12 @@ public class StreamMetricSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	
 	@Override
 	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new StreamMetricSpliterator<>(this.stream, spliterator, metricSupplier);
+		return new StreamMetricSpliterator<>(this.getPipeline(), spliterator, metricSupplier);
 	}
 	
 	@Override
 	public void close() {
+		super.close();
 		streamMetric.onStop();
 	}
 }

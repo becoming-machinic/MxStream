@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -30,8 +30,8 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	private final Supplier<Comparator<? super T>> supplier;
 	private final Queue<T> queue;
 	
-	public WindowedSortSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int windowSize, Supplier<Comparator<? super T>> supplier) {
-		super(stream, previousSpliterator);
+	public WindowedSortSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, int windowSize, Supplier<Comparator<? super T>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.windowSize = windowSize;
 		this.supplier = supplier;
 		Comparator<? super T> comparator = supplier.get();
@@ -58,7 +58,7 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	public boolean tryAdvance(Consumer<? super T> action) {
 		// advance until queue is full or we reach end
 		while (true) {
-			if (this.previousSpliterator.tryAdvance(value -> {
+			if (this.getPreviousSpliterator().tryAdvance(value -> {
 				// If value is null bypass queue to prevent NPE
 				if (value == null) {
 					action.accept(null);
@@ -85,7 +85,7 @@ public class WindowedSortSpliterator<T> extends AbstractChainedSpliterator<T, T>
 	
 	@Override
 	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new WindowedSortSpliterator<>(stream, spliterator, windowSize, supplier);
+		return new WindowedSortSpliterator<>(getPipeline(), spliterator, windowSize, supplier);
 	}
 	
 }

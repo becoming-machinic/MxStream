@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,34 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
+import io.machinic.stream.PipelineSource;
 
 public abstract class AbstractChainedSpliterator<IN, OUT> implements MxSpliterator<OUT> {
 	
-	protected final MxStream<IN> stream;
-	protected final MxSpliterator<IN> previousSpliterator;
+	private final BasePipeline<?,IN> pipeline;
+	private final MxSpliterator<IN> previousSpliterator;
 	
-	public AbstractChainedSpliterator(MxStream<IN> stream, MxSpliterator<IN> previousSpliterator) {
-		this.stream = stream;
+	public AbstractChainedSpliterator(BasePipeline<?,IN> pipeline, MxSpliterator<IN> previousSpliterator) {
+		this.pipeline = pipeline;
 		this.previousSpliterator = previousSpliterator;
 		
 	}
 	
-	protected MxStream<IN> getStream() {
-		return stream;
+	protected final PipelineSource<?> getSource() {
+		return pipeline.getSource();
+	}
+	
+	protected final BasePipeline<?,IN> getPipeline() {
+		return pipeline;
+	}
+	
+	protected final MxSpliterator<IN> getPreviousSpliterator() {
+		return previousSpliterator;
 	}
 	
 	protected boolean isParallel() {
-		return this.stream.isParallel();
+		return this.pipeline.isParallel();
 	}
 	
 	protected abstract MxSpliterator<OUT> split(MxSpliterator<IN> spliterator);
@@ -51,6 +60,12 @@ public abstract class AbstractChainedSpliterator<IN, OUT> implements MxSpliterat
 	}
 	
 	@Override
+	public void onStart() {
+		this.previousSpliterator.onStart();
+	}
+	
+	@Override
 	public void close() {
+		this.previousSpliterator.close();
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,15 +28,15 @@ public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> 
 	private final int batchSize;
 	private final AtomicReference<List<T>> batchReference;
 	
-	public BatchSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, int batchSize) {
-		super(stream, previousSpliterator);
+	public BatchSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, int batchSize) {
+		super(pipeline, previousSpliterator);
 		this.batchSize = batchSize;
 		batchReference = new AtomicReference<>(new ArrayList<>(batchSize));
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super List<T>> action) {
-		if (this.previousSpliterator.tryAdvance(value -> {
+		if (this.getPreviousSpliterator().tryAdvance(value -> {
 			List<T> batch = batchReference.getPlain();
 			batch.add(value);
 			// Push batch if full
@@ -57,7 +57,7 @@ public class BatchSpliterator<T> extends AbstractChainedSpliterator<T, List<T>> 
 	
 	@Override
 	public MxSpliterator<List<T>> split(MxSpliterator<T> spliterator) {
-		return new BatchSpliterator<>(this.stream, spliterator, batchSize);
+		return new BatchSpliterator<>(this.getPipeline(), spliterator, batchSize);
 	}
 	
 }

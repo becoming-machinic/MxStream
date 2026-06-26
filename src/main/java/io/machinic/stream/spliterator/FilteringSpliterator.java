@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Becoming Machinic Inc.
+ * Copyright 2026 Becoming Machinic Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.machinic.stream.spliterator;
 
-import io.machinic.stream.MxStream;
+import io.machinic.stream.BasePipeline;
 import io.machinic.stream.StreamException;
 
 import java.util.function.Consumer;
@@ -28,15 +28,15 @@ public class FilteringSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 	private final Supplier<Predicate<? super T>> supplier;
 	private final Predicate<? super T> predicate;
 	
-	public FilteringSpliterator(MxStream<T> stream, MxSpliterator<T> previousSpliterator, Supplier<Predicate<? super T>> supplier) {
-		super(stream, previousSpliterator);
+	public FilteringSpliterator(BasePipeline<?,T> pipeline, MxSpliterator<T> previousSpliterator, Supplier<Predicate<? super T>> supplier) {
+		super(pipeline, previousSpliterator);
 		this.supplier = supplier;
 		this.predicate = supplier.get();
 	}
 	
 	@Override
 	public boolean tryAdvance(Consumer<? super T> action) {
-		return this.previousSpliterator.tryAdvance(value -> {
+		return this.getPreviousSpliterator().tryAdvance(value -> {
 			try {
 				if (predicate.test(value)) {
 					action.accept(value);
@@ -44,14 +44,14 @@ public class FilteringSpliterator<T> extends AbstractChainedSpliterator<T, T> {
 			} catch (StreamException e) {
 				throw e;
 			} catch (Exception e) {
-				stream.exceptionHandler().onException(e, value);
+				getPipeline().exceptionHandler().onException(e, value);
 			}
 		});
 	}
 	
 	@Override
 	public MxSpliterator<T> split(MxSpliterator<T> spliterator) {
-		return new FilteringSpliterator<>(this.stream, spliterator, supplier);
+		return new FilteringSpliterator<>(this.getPipeline(), spliterator, supplier);
 	}
 	
 }

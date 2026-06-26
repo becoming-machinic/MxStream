@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.machinic.stream.test.TestData.INTEGER_LIST_A;
 import static io.machinic.stream.test.TestData.INTEGER_SET_A;
@@ -40,73 +41,112 @@ import static io.machinic.stream.test.TestData.INTEGER_SET_B;
 import static io.machinic.stream.test.TestData.NOOP_EXCEPTION_HANDLER;
 
 @Execution(ExecutionMode.CONCURRENT)
-public class MxStreamFanOutTest {
+public class MxStreamFanOutPartitionedTest {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(MxStreamFanOutTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(MxStreamFanOutPartitionedTest.class);
 	
 	@BeforeEach
 	void setUp(TestInfo testInfo) {
 		LOG.info("test started: {}", testInfo.getDisplayName());
 	}
 	
+	
 	@Test
-	public void fanOutWithEmptyStreamTest() {
+	public void fanOutPartitionedWithEmptyStreamTest() {
 		Assertions.assertTrue(MxStream.of(List.<Integer>of())
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.toSet()
 				.isEmpty());
 	}
 	
 	@Test
-	public void fanOutWithSingleElementStreamTest() {
+	public void fanOutPartitionedWithSingleElementStreamTest() {
 		Set<Integer> result = MxStream.of(List.of(42))
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.toSet();
 		
 		Assertions.assertEquals(Set.of(42), result);
 	}
 	
 	@Test
-	public void fanOutEmptyInputTest() {
+	public void fanOutPartitionedEmptyInputTest() {
 		Assertions.assertEquals(List.of(),
-				MxStream.of(List.of())
-						.fanOut(2, 100)
+				MxStream.of(List.<Integer>of())
+						.fanOutPartitioned(2, 100, value -> value)
 						.toList());
 	}
 	
 	@Test
-	public void fanOutSingleElementInputTest() {
+	public void fanOutPartitionedSingleElementInputTest() {
 		Assertions.assertEquals(List.of(0),
 				MxStream.of(List.of(0))
-						.fanOut(2, 100)
+						.fanOutPartitioned(2, 100, value -> value)
 						.toList());
 	}
 	
 	@Test
-	public void fanOutSmallBufferTest() {
+	public void fanOutPartitionedSmallBufferTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
-				.fanOut(2, 1)
+				.fanOutPartitioned(2, 1, value -> value)
 				.toSet());
 	}
 	
 	@Test
-	public void fanOutLargeBufferTest() {
+	public void fanOutPartitionedLargeBufferTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
-				.fanOut(2, 50)
+				.fanOutPartitioned(2, 50, value -> value)
 				.toSet());
 	}
 	
 	@Test
-	public void fanOutParallelTest() {
+	public void fanOutPartitionedWithMorePartitionsThanElementsTest() {
+		Assertions.assertEquals(Set.of(0, 1, 2),
+				MxStream.of(List.of(0, 1, 2))
+						.fanOutPartitioned(10, 50, value -> value)
+						.toSet());
+	}
+	
+	@Test
+	public void fanOutPartitionedWithConstantPartitionTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
-				.fanOut(2, 50)
+				.fanOutPartitioned(10, 50, value -> 0)
 				.toSet());
 	}
 	
 	@Test
-	public void fanOutWithSlowDownstreamTest() {
+	public void fanOutPartitionedWithModuloPartitionTest() {
+		int numElements = 100;
+		Set<Integer> expected = new HashSet<>();
+		for (int i = 0; i < numElements; i++) {
+			expected.add(i);
+		}
+		
+		Set<Integer> result = MxStream.of(new IntegerGeneratorIterator(numElements).toStream())
+				.fanOutPartitioned(10, 50, value -> value % 10)
+				.toSet();
+		
+		Assertions.assertEquals(expected, result);
+	}
+	
+	@Test
+	public void fanOutPartitionedWithSupplierTest() {
+		AtomicInteger supplierCount = new AtomicInteger();
+		
+		Set<Integer> result = MxStream.of(INTEGER_LIST_A)
+				.fanOutPartitioned(4, 50, () -> {
+					supplierCount.incrementAndGet();
+					return value -> value;
+				})
+				.toSet();
+		
+		Assertions.assertEquals(INTEGER_SET_A, result);
+		Assertions.assertEquals(1, supplierCount.get());
+	}
+	
+	@Test
+	public void fanOutPartitionedWithSlowDownstreamTest() {
 		Assertions.assertEquals(INTEGER_SET_A, MxStream.of(INTEGER_LIST_A)
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.peek(value -> {
 					try {
 						Thread.sleep(100);
@@ -118,7 +158,7 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutWithConcurrencyTest() throws InterruptedException {
+	public void fanOutPartitionedWithConcurrencyTest() {
 		int numElements = 100;
 		Set<Integer> expected = new HashSet<>();
 		for (int i = 0; i < numElements; i++) {
@@ -126,10 +166,10 @@ public class MxStreamFanOutTest {
 		}
 		
 		Set<Integer> result = MxStream.of(new IntegerGeneratorIterator(numElements).toStream())
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.peek(value -> {
 					try {
-						Thread.sleep(10); // Simulate some processing time
+						Thread.sleep(10);
 					} catch (InterruptedException e) {
 						throw new RuntimeException(e);
 					}
@@ -140,7 +180,7 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutWithParallelUpstreamTest() throws InterruptedException {
+	public void fanOutPartitionedWithParallelUpstreamTest() {
 		int numElements = 100;
 		Set<Integer> expected = new HashSet<>();
 		for (int i = 0; i < numElements; i++) {
@@ -148,10 +188,10 @@ public class MxStreamFanOutTest {
 		}
 		
 		Set<Integer> result = MxStream.of(new IntegerGeneratorIterator(numElements).toParallelStream())
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.peek(value -> {
 					try {
-						Thread.sleep(10); // Simulate some processing time
+						Thread.sleep(10);
 					} catch (InterruptedException e) {
 						throw new RuntimeException(e);
 					}
@@ -162,7 +202,7 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutWithExceptionHandlingTest() {
+	public void fanOutPartitionedWithExceptionHandlingTest() {
 		Set<Integer> expected = new HashSet<>();
 		for (int i = 0; i < 10; i++) {
 			if (i % 2 == 0) {
@@ -171,7 +211,7 @@ public class MxStreamFanOutTest {
 		}
 		
 		Set<Integer> result = MxStream.of(new IntegerGeneratorIterator(10).toStream())
-				.fanOut(10, 50)
+				.fanOutPartitioned(10, 50, value -> value)
 				.asyncMap(10, value -> {
 					if (value % 2 != 0) {
 						throw new RuntimeException("Odd number encountered");
@@ -185,10 +225,11 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutWithAsyncMapTest() {
-		
+	public void fanOutPartitionedWithAsyncMapTest() {
 		Assertions.assertEquals(
-				100L, MxStream.of(new IntegerGeneratorIterator(100).toStream()).fanOut(1, 50).asyncMap(10, value -> {
+				100L, MxStream.of(new IntegerGeneratorIterator(100).toStream())
+						.fanOutPartitioned(10, 50, value -> value)
+						.asyncMap(10, value -> {
 							try {
 								Thread.sleep(10);
 							} catch (InterruptedException e) {
@@ -210,10 +251,31 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutPeekDefaultExceptionHandler() {
+	public void fanOutPartitionedMaintainsPerPartitionOrderTest() {
+		List<Integer> result = MxStream.of(new IntegerGeneratorIterator(100).toStream())
+				.fanOutPartitioned(2, 50, value -> value % 2)
+				.toList();
+		
+		List<Integer> evenValues = result.stream()
+				.filter(value -> value % 2 == 0)
+				.toList();
+		List<Integer> oddValues = result.stream()
+				.filter(value -> value % 2 != 0)
+				.toList();
+		
+		Assertions.assertEquals(new IntegerGeneratorIterator(50).toStream()
+				.map(value -> value * 2)
+				.toList(), evenValues);
+		Assertions.assertEquals(new IntegerGeneratorIterator(50).toStream()
+				.map(value -> (value * 2) + 1)
+				.toList(), oddValues);
+	}
+	
+	@Test
+	public void fanOutPartitionedDefaultExceptionHandlerTest() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
 			MxStream.of(INTEGER_LIST_A)
-					.fanOut(2, 5)
+					.fanOutPartitioned(2, 5, value -> value)
 					.peek(value -> {
 						throw new RuntimeException("peek operation exception");
 					}).toList();
@@ -222,23 +284,23 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutPeekInterruptException() {
+	public void fanOutPartitionedPeekInterruptException() {
 		Exception exception = Assertions.assertThrows(StreamException.class, () -> {
 			MxStream.of(INTEGER_LIST_A)
-					.fanOut(2, 5)
+					.fanOutPartitioned(2, 5, value -> value)
 					.peek(value -> {
 						Thread.currentThread().interrupt();
 					}).toList();
 		});
-		Assertions.assertEquals("FanOutSpliterator was interrupted", exception.getMessage());
+		Assertions.assertEquals("FanOutPartitionedSpliterator was interrupted", exception.getMessage());
 	}
 	
 	@Test
-	public void fanOutPeekParallelCustomExceptionHandler() {
+	public void fanOutPartitionedPeekParallelCustomExceptionHandler() {
 		Assertions.assertEquals(INTEGER_SET_B,
 				MxStream.of(INTEGER_SET_B)
 						.exceptionHandler(NOOP_EXCEPTION_HANDLER)
-						.fanOut(2, 5)
+						.fanOutPartitioned(2, 5, integer -> integer)
 						.peek(integer -> {
 							if (integer % 2 != 0) {
 								throw new RuntimeException("peek operation exception");
@@ -247,7 +309,7 @@ public class MxStreamFanOutTest {
 	}
 	
 	@Test
-	public void fanOutMetrics() {
+	public void fanOutPartitionedMetrics() {
 		RateStreamMetricSupplier metricSupplier = new RateStreamMetricSupplier();
 		long count = MxStream.of(new IntegerGeneratorIterator(100))
 				.peek(value -> {
@@ -257,14 +319,43 @@ public class MxStreamFanOutTest {
 						throw new RuntimeException(e);
 					}
 				})
-				.fanOut(1, 50)
+				.fanOutPartitioned(2, 50, value -> value)
 				.metrics(metricSupplier)
 				.batch(10, 50, TimeUnit.MILLISECONDS)
 				.peek(batch -> {
-//					System.out.printf("Batch size: %s, Rate: %s\n", batch.size(),metricSupplier.getWaitDuration());
+					// Metrics are captured by metricSupplier.
 				})
 				.count();
 		
 		Assertions.assertTrue(count > 10L);
 	}
+	
+	@Test
+	public void fanOutPartitionedRejectsParallelismLessThanTwoTest() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> MxStream.of(INTEGER_LIST_A)
+				.fanOutPartitioned(1, 50, value -> value)
+				.toSet());
+	}
+	
+	@Test
+	public void fanOutPartitionedRejectsBufferSizeLessThanOneTest() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> MxStream.of(INTEGER_LIST_A)
+				.fanOutPartitioned(2, 0, value -> value)
+				.toSet());
+	}
+	
+	@Test
+	public void fanOutPartitionedPropagatesPartitionFunctionExceptionTest() {
+		Exception exception = Assertions.assertThrows(StreamException.class, () -> MxStream.of(INTEGER_LIST_A)
+				.fanOutPartitioned(2, 50, value -> {
+					if (value == 3) {
+						throw new RuntimeException("partition function exception");
+					}
+					return value;
+				})
+				.toSet());
+		
+		Assertions.assertTrue(exception.getMessage().contains("partition function exception"));
+	}
+	
 }

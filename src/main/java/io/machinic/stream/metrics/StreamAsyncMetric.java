@@ -19,7 +19,7 @@ package io.machinic.stream.metrics;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class AsyncMapMetric {
+public class StreamAsyncMetric implements AsyncMetric {
 	
 	private volatile long startTimestamp = 0L;
 	private volatile long endTimestamp = 0L;

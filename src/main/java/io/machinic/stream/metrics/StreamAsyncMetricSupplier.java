@@ -23,18 +23,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * RateAsyncMapMetricSupplier is a supplier that generates AsyncMapMetric objects.
  * It maintains a list of all metrics generated and provides various statistics about them.
  */
-public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
-	private final CopyOnWriteArrayList<AsyncMapMetric> asyncMapMetrics = new CopyOnWriteArrayList<>();
+public class StreamAsyncMetricSupplier implements AsyncMetricSupplier {
+	private final CopyOnWriteArrayList<StreamAsyncMetric> asyncMetrics = new CopyOnWriteArrayList<>();
 	
 	@Override
-	public AsyncMapMetric get() {
-		AsyncMapMetric metric = new AsyncMapMetric();
-		asyncMapMetrics.add(metric);
+	public AsyncMetric get() {
+		StreamAsyncMetric metric = new StreamAsyncMetric();
+		asyncMetrics.add(metric);
 		return metric;
 	}
 	
 	public long getCount() {
-		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getCount).sum();
+		return asyncMetrics.stream().mapToLong(StreamAsyncMetric::getCount).sum();
 	}
 	
 	/**
@@ -42,7 +42,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	 * @return the total duration in milliseconds
 	 */
 	public long getDuration() {
-		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getDuration).sum();
+		return asyncMetrics.stream().mapToLong(StreamAsyncMetric::getDuration).sum();
 	}
 	
 	/**
@@ -50,7 +50,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	 * @return events per second
 	 */
 	public double getAverageRate() {
-		List<Double> sum = asyncMapMetrics.stream()
+		List<Double> sum = asyncMetrics.stream()
 				.map(metric -> metric.getCount() / Math.max(Long.valueOf(metric.getDuration()).doubleValue(), 1D))
 				.toList();
 		return (sum.stream().reduce(0D, Double::sum) / sum.size()) * 1000D;
@@ -62,7 +62,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	 * @return The total duration of all pending tasks in milliseconds
 	 */
 	public long getTotalPendingDuration() {
-		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getTaskPendingDuration).sum();
+		return asyncMetrics.stream().mapToLong(StreamAsyncMetric::getTaskPendingDuration).sum();
 	}
 	
 	/**
@@ -70,7 +70,7 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	 * @return total duration in milliseconds
 	 */
 	public long getTotalDuration() {
-		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getTaskDuration).sum();
+		return asyncMetrics.stream().mapToLong(StreamAsyncMetric::getTaskDuration).sum();
 	}
 	
 	/**
@@ -78,13 +78,13 @@ public class RateAsyncMapMetricSupplier implements AsyncMapMetricSupplier {
 	 * @return The average task duration in milliseconds
 	 */
 	public double getAverageDuration() {
-		List<Double> sum = asyncMapMetrics.stream()
+		List<Double> sum = asyncMetrics.stream()
 				.map(metric -> metric.getTaskDuration() / Math.max(Long.valueOf(metric.getCount()).doubleValue(), 1D))
 				.toList();
 		return sum.stream().reduce(0D, Double::sum) / sum.size();
 	}
 	
 	public long getWaitDuration() {
-		return asyncMapMetrics.stream().mapToLong(AsyncMapMetric::getWaitDuration).sum();
+		return asyncMetrics.stream().mapToLong(StreamAsyncMetric::getWaitDuration).sum();
 	}
 }
